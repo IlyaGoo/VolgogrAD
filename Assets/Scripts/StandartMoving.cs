@@ -263,7 +263,7 @@ public abstract class StandartMoving : NetworkBehaviour
         }
     }
 
-    public void SetScaleInHands(float time, int energy, bool isController, int soundNum, ScaleDoing bl = null)
+    public void SetScaleInHands(float time, int energy, bool isController, int soundNum, IScaleDoing bl = null)
     {
         if (inHandsNames.Contains("DoingDelayScale")) 
         {

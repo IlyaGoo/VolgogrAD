@@ -17,6 +17,7 @@ public class TaskManager : NetworkBehaviour {
     public CarAreaDoing[] carsAreas;
     public RadioScript radioScript;
     public GameObject LocalPlayer;
+    public List<GameObject> wholes = new List<GameObject>();
 
     public ObjectsScript objectsScript;
     private readonly List<LightScript> lightGameObjects = new List<LightScript>();

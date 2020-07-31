@@ -7,36 +7,29 @@ public class LightScript : MonoBehaviour {
 
     [SerializeField] float maxIntecive = 0;
     [SerializeField] float minIntecive = 0;
-    Light2D ownLight = null;
+    Light2D OwnLight => GetComponent<Light2D>();
     [SerializeField] TaskManager man = null;
     public bool needUpdate = true;
 
     void Start()
     {
-        Init();
         if (man == null) man = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>();
         man.AddLightoObject(this);
     }
 
-    private void Init()
-    {
-        ownLight = GetComponent<Light2D>();
-    }
-
     public void SetLight(float intence)
     {
-        if(ownLight != null && needUpdate) ownLight.intensity = minIntecive + (maxIntecive - minIntecive) * intence;
+        if(OwnLight != null && needUpdate) OwnLight.intensity = minIntecive + (maxIntecive - minIntecive) * intence;
     }
 
     public void SetFullLight()
     {
-        if (ownLight != null) ownLight.intensity = man.currentLightLevel;
+        if (OwnLight != null) OwnLight.intensity = man.currentLightLevel;
     }
 
     public void SetZeroLight()
     {
-        if (ownLight != null) Init();
-        ownLight.intensity = 0;
+        OwnLight.intensity = 0;
     }
 
     void OnDestroy()

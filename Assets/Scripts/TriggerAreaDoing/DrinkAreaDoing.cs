@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class DrinkAreaDoing : TriggerAreaDoing, ScaleDoing
+public class DrinkAreaDoing : TriggerAreaDoing, IScaleDoing
 {
     readonly string[] potionsNames = new string[] { "WaterEmpty", "PyatLEmpty" };
     GameObject pl;

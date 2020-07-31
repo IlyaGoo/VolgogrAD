@@ -7,7 +7,7 @@ public class DoingScaleScript : MonoBehaviour
     static float needDelay = 2;
     float currentTimer = needDelay;
     GameObject player;
-    public ScaleDoing whole;
+    public IScaleDoing whole;
     [SerializeField] Transform scale;
     [SerializeField] SpriteRenderer scaleRender;
     bool skiped = false;
@@ -16,7 +16,7 @@ public class DoingScaleScript : MonoBehaviour
     [SerializeField] AudioSource source;
     [SerializeField] AudioClip[] clips;
 
-    public void Init(GameObject pl, ScaleDoing bl, int energy, bool isController, int soundNum, float time = 2)
+    public void Init(GameObject pl, IScaleDoing bl, int energy, bool isController, int soundNum, float time = 2)
     {
         source.clip = clips[soundNum];
         source.Play();

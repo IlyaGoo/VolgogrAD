@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WholeScript : MonoBehaviour, ScaleDoing
+public class WholeScript : MonoBehaviour, IScaleDoing
 {
 
     private GameObject block;
     List<DetectingItem>[] items = new List<DetectingItem>[3] {new List<DetectingItem>(), new List<DetectingItem>(), new List<DetectingItem>() };
-    int currentLevel;
+    public int currentLevel;
     [SerializeField] Sprite[] whole1Sprites;
     [SerializeField] Sprite[] whole2Sprites;
     [SerializeField] Sprite[] whole3Sprites;
@@ -35,13 +35,19 @@ public class WholeScript : MonoBehaviour, ScaleDoing
 
     void Start()
     {
-        RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position + new Vector3(0.1f, 0.1f, 0), Vector2.zero);
+        GetParent(transform.position);
+    }
+
+    public void GetParent(Vector3 pos)//Необходимо кидать позицию, потому что иногда вызываем при инициализации и спавн ямы быстрее чем первичное перемещение самой ямы
+    {
+        RaycastHit2D[] hits = Physics2D.RaycastAll(pos + new Vector3(0.1f, 0.1f, 0), Vector2.zero);
 
         foreach (var hit in hits)
         {
             if (hit.collider != null && hit.collider.gameObject.tag == "StandartBlock")
             {
                 transform.parent = hit.transform;
+                transform.position = pos;
                 hit.transform.GetComponent<BlockController>().CurrentWhole = this;
                 return;
             }
@@ -76,6 +82,7 @@ public class WholeScript : MonoBehaviour, ScaleDoing
 
     void SetPart(GameObject part, bool p1, bool p2, bool p3, int turn)
     {
+        print(-1);
         int spriteNum;
         if (p1)
         {
@@ -177,11 +184,11 @@ public class WholeScript : MonoBehaviour, ScaleDoing
 
     public bool IsEnd() { return currentLevel + 1 > items.Length; }
 
-    public void Dig()
+    public void Dig(int toLevel)
     {
-        if (IsEnd()) return;
+        if (IsEnd() || toLevel == currentLevel) return;
 
-        for (var i = currentLevel + 1; i < items.Length; i++)
+        for (var i = toLevel; i < items.Length; i++)
         {
             foreach (var item in items[i])
             {
@@ -189,8 +196,10 @@ public class WholeScript : MonoBehaviour, ScaleDoing
             }
         }
 
-        items[currentLevel].Clear();
-        currentLevel++;
+        for(var i = 0; i < toLevel; i++)
+            items[i].Clear();
+
+        currentLevel = toLevel;
         carCollider.enabled = true;
 
         if (parts[0] == null)
@@ -259,7 +268,7 @@ public class WholeScript : MonoBehaviour, ScaleDoing
     }
 }
 
-public interface ScaleDoing
+public interface IScaleDoing
 {
     void ScaleDo();
 }

@@ -54,6 +54,16 @@ public class Connector : NetworkBehaviour
         }
     }
 
+    [Command]
+    void CmdRequestWholes()
+    {
+        foreach (var whole in Task.wholes)
+        {
+            playerNet.SendWhole(whole.transform.position);
+            playerNet.SendDepth(whole);
+        }
+    }
+
     public void RequestAll()
     {
         CmdRequestPlayersDatas();
@@ -63,6 +73,7 @@ public class Connector : NetworkBehaviour
         CmdSetLight();
         CmdRequestCamps();
         CmdRequestCarsDatas();
+        CmdRequestWholes();
     }
 
     [Command]

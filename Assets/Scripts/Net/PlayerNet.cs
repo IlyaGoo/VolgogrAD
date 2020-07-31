@@ -154,13 +154,25 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
     [Command]
     public void CmdDig(GameObject whole)
     {
-        RpcDig(whole);
+        RpcDig(whole, whole.GetComponent<WholeScript>().currentLevel + 1);
     }
 
     [ClientRpc]
-    public void RpcDig(GameObject whole)
+    public void RpcDig(GameObject whole, int toLevel)
     {
-        whole.GetComponent<WholeScript>().Dig();
+        whole.GetComponent<WholeScript>().Dig(toLevel);
+    }
+
+    public void SendDepth(GameObject whole)
+    {
+        TargetDig(connectionToClient, whole, whole.GetComponent<WholeScript>().currentLevel, whole.transform.position);
+    }
+
+    [TargetRpc]
+    void TargetDig(NetworkConnection target, GameObject whole, int toLevel, Vector3 pos)
+    {
+        whole.GetComponent<WholeScript>().GetParent(pos);
+        whole.GetComponent<WholeScript>().Dig(toLevel);
     }
 
     [Command]
@@ -228,7 +240,32 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
                 if (hit.collider.gameObject.GetComponent<BlockController>() != null)
                     return;
                 hit.collider.gameObject.AddComponent<BlockController>();
-                if (isServer) SpawnWhole("WholeObject", hit.transform.position, hit.transform.rotation, meta);
+                if (isServer)
+                {
+                    SpawnWhole("WholeObject", hit.transform.position, hit.transform.rotation, meta);
+                }
+                break;
+            }
+        }
+    }
+
+    public void SendWhole(Vector3 pos)
+    {
+        TargetSetWhole(connectionToClient, pos);
+    }
+
+    [TargetRpc]
+    void TargetSetWhole(NetworkConnection target, Vector3 pos)
+    {
+        RaycastHit2D[] hits = Physics2D.RaycastAll(pos + WholeWector1, WholeWector2);
+
+        foreach (var hit in hits)
+        {
+            if (hit.collider != null && hit.collider.gameObject.CompareTag("StandartBlock"))
+            {
+                if (hit.collider.gameObject.GetComponent<BlockController>() != null)
+                    return;
+                hit.collider.gameObject.AddComponent<BlockController>();
                 break;
             }
         }
@@ -239,10 +276,11 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
         var wholeObject = Instantiate(Resources.Load(prefab), position, rotation) as GameObject;
         NetworkServer.Spawn(wholeObject);
         wholeObject.GetComponent<WholeScript>().SetData(meta);
+        Task.wholes.Add(wholeObject);
         //RpcSetWholeParent(gameObject);
     }
 
-    [ClientRpc]
+/*    [ClientRpc]
     void RpcSetWholeParent(GameObject whole)
     {
         RaycastHit2D[] hits = Physics2D.RaycastAll(whole.transform.position + new Vector3(0.1f, 0.1f, 0), Vector2.zero);
@@ -256,7 +294,7 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
                 return;
             }
         }
-    }
+    }*/
 
     [Command]
     private void CmdSpawnParts(int x, int y, int z)
