@@ -3,17 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Connector : NetworkBehaviour
+public class Connector : NetworkBehaviourExtension
 {
-    [SerializeField] PlayerNet playerNet;
     [SerializeField] Commands cmd;
-    public TaskManager Task => playerNet.Task;
-
 
     [Command]
     public void CmdRequestPlayersDatas()
     {
-        foreach (var pl in Task.PlayersDatas.Values)
+        foreach (var pl in taskManager.PlayersDatas.Values)
         {
             playerNet.SendSpawnParts(pl.playerObject);
             cmd.SendEnterInWater(pl.playerObject);
@@ -27,7 +24,7 @@ public class Connector : NetworkBehaviour
     [Command]
     void CmdRequestMobsDatas()
     {
-        foreach(var mob in Task._mobManager.mobs)
+        foreach(var mob in taskManager._mobManager.mobs)
         {
             playerNet.SendSpawnParts(mob.gameObject);
             cmd.SendEnterInWater(mob.gameObject);
@@ -41,11 +38,11 @@ public class Connector : NetworkBehaviour
     [Command]
     void CmdRequestCarsDatas()
     {
-        foreach(var car in Task.carsAreas)
+        foreach(var car in taskManager.carsAreas)
         {
             foreach(var passager in car.passagers)
             {
-                cmd.TargetAddPassager(connectionToClient, car.transform.parent.gameObject, passager, passager.Equals(car.Driver), Task.GetPlayerData(passager).playerObject);
+                cmd.TargetAddPassager(connectionToClient, car.transform.parent.gameObject, passager, passager.Equals(car.Driver), taskManager.GetPlayerData(passager).playerObject);
             }
             cmd.ThrowCarState(car.transform.parent.gameObject, car.carComponent.currentState, car.carComponent._animWheels.speed);
             cmd.SetCarCurrentDirection(car.transform.parent.gameObject, car.carComponent.CurrentDirection.x, car.carComponent.CurrentDirection.y);
@@ -57,7 +54,7 @@ public class Connector : NetworkBehaviour
     [Command]
     void CmdRequestWholes()
     {
-        foreach (var whole in Task.wholes)
+        foreach (var whole in taskManager.wholes)
         {
             playerNet.SendWhole(whole.transform.position);
             playerNet.SendDepth(whole);
@@ -98,7 +95,7 @@ public class Connector : NetworkBehaviour
             {
                 foreach(var sleeper in sleepArea.sleepers)
                 {
-                    TargetReadyToSkip(connectionToClient, sleepArea.gameObject, Task.PlayersDatas[sleeper].HeadNum, sleeper);
+                    TargetReadyToSkip(connectionToClient, sleepArea.gameObject, taskManager.PlayersDatas[sleeper].HeadNum, sleeper);
                 }
             }
         }
@@ -123,19 +120,19 @@ public class Connector : NetworkBehaviour
     [Command]
     public void CmdSetLight()
     {
-        TargetSendLight(connectionToClient, Task.globalLight.intensity, Task.currentLightLevel);
+        TargetSendLight(connectionToClient, taskManager.globalLight.intensity, taskManager.currentLightLevel);
     }
 
     [TargetRpc]
     void TargetSendLight(NetworkConnection target, float intensy, float secondIntensy)
     {
-        Task.SetConnectionLight(intensy, secondIntensy);
+        taskManager.SetConnectionLight(intensy, secondIntensy);
     }
 
     [Command]
     public void CmdRequestCamps()
     {
-        foreach (var camp in Task.campsAreas)
+        foreach (var camp in taskManager.campsAreas)
         {
             TargetSendCamp(connectionToClient, camp.gameObject, camp.isOpen);
         }

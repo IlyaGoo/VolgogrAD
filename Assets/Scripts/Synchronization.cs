@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Synchronization : NetworkBehaviour
+public class Synchronization : NetworkBehaviourExtension
 {
     [SerializeField]
     protected float _posLerpRate = 15;

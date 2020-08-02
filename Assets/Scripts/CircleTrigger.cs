@@ -7,7 +7,7 @@ public class CircleTrigger : MonoBehaviour
     [SerializeField] private GameObject currentObject;
     [SerializeField] Moving moving;
     public Commands cmd;
-    [SerializeField] PlayerInventoryController inventoryController;
+    [SerializeField] InventoryController inventoryController;
     int deep;
     int deep2;
     public bool isController = false;

@@ -54,7 +54,7 @@ public class SleepAreaDoing : TriggerAreaDoing
     }
     Moving Mov => PlayNet._moving;
     Commands Cmd => PlayNet.cmd;
-    PlayerInventoryController InventoryController => PlayNet.inventoryController;
+    InventoryController InventoryController => PlayNet.inventoryController;
 
     DebafsController debafsControllerRef;
     DebafsController DebafsControllerRef

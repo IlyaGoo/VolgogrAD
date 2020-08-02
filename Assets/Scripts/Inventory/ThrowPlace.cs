@@ -12,7 +12,7 @@ public class ThrovePlace : MonoBehaviour, IDropHandler, IPointerClickHandler
 
     Inventory inv;
     Inventory Inv { get { 
-            if (inv == null) inv = Player.GetComponent<PlayerInventoryController>().inventories[2];
+            if (inv == null) inv = Player.GetComponent<InventoryController>().inventories[2];
             return inv; } }
 
     Moving mov;

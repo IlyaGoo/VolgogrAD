@@ -3,10 +3,10 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class Taker : MonoBehaviour, IListener
+public class Taker : MonoBehaviourExtension, IListener
 {
     public Commands cmd;
-    public PlayerInventoryController InventoryRef;
+    public InventoryController InventoryRef;
     [SerializeField] GameObject player = null;
 
     public Skiper skiper;
@@ -15,7 +15,6 @@ public class Taker : MonoBehaviour, IListener
 
     public GameObject currentAreaDoing;
 
-    private TaskManager _TaskManager;
 
     public TakerDoing current_can = TakerDoing.Empty;
     public bool isLocal = false;
@@ -26,9 +25,8 @@ public class Taker : MonoBehaviour, IListener
 
     public void Init() {
         playNet.listenersManager.SpaceListeners.Add(this);
-        _TaskManager = playNet.Task;
         isLocal = true;
-        _TaskManager._taker = this;
+        taskManager._taker = this;
     }
 
     void OnTriggerEnter2D(Collider2D col)

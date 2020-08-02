@@ -5,13 +5,12 @@ using Mirror;
 using System.Net.Http.Headers;
 using System.Linq;
 
-public class Commands : NetworkBehaviour
+public class Commands : NetworkBehaviourExtension
 {
 
     [SerializeField] private AudioSource soundsObject;
     [SerializeField] private AudioClip[] sounds;
     [SerializeField] PlayerNet plNet;
-    TaskManager _taskManager => plNet.Task;
     readonly string[] emptyPotionsNames = new string[] { "WaterEmpty", "PyatLEmpty" };
 
     #region inventory
@@ -50,13 +49,13 @@ public class Commands : NetworkBehaviour
     [TargetRpc]
     public void TargetForceRequestInventory(NetworkConnection target, GameObject invControllerOject, int invNumber)
     {
-        invControllerOject.GetComponent<PlayerInventoryController>().inventories[invNumber].RequesData();
+        invControllerOject.GetComponent<InventoryController>().inventories[invNumber].RequesData();
     }
 
     [Command]
     public void CmdRequestInventory(GameObject invControllerOject, int invNumber)
     {
-        var data = invControllerOject.GetComponent<PlayerInventoryController>().inventories[invNumber].data;
+        var data = invControllerOject.GetComponent<InventoryController>().inventories[invNumber].data;
         for (var y = 0; y < data.ROWS; y++)
             for (var x = 0; x < data.COLS; x++)
             {
@@ -84,7 +83,7 @@ public class Commands : NetworkBehaviour
     [Command]
     public void CmdObjectTakeItemName(string item, int count, GameObject controller)
     {
-        var contr = controller.GetComponent<PlayerInventoryController>();
+        var contr = controller.GetComponent<InventoryController>();
         var datas = new InventoryData[contr.inventories.Length];
         for (var i = 0; i < contr.inventories.Length; i++)
             datas[i] = contr.inventories[i].data;
@@ -156,14 +155,14 @@ public class Commands : NetworkBehaviour
     void TargetTakeItem(NetworkConnection target, string item, int y, int x, int inventoryNum, int count)
     {
         var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
-        GetComponent<PlayerInventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
+        GetComponent<InventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
     }
 
     [ClientRpc]
     void RpcTakeItem(GameObject invObj, string item, int y, int x, int inventoryNum, int count)
     {
         var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
-        invObj.GetComponent<PlayerInventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
+        invObj.GetComponent<InventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
     }
 
     [TargetRpc]
@@ -171,7 +170,7 @@ public class Commands : NetworkBehaviour
     {
         //print(invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].name);
         var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
-        invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].cells[y, x].Put(itemData, count);
+        invControllerObject.GetComponent<InventoryController>().inventories[num].cells[y, x].Put(itemData, count);
     }
 
     [TargetRpc]
@@ -179,13 +178,13 @@ public class Commands : NetworkBehaviour
     {
         //print(invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].name);
         var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
-        invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].cells[y, x].PutForce(itemData, count);
+        invControllerObject.GetComponent<InventoryController>().inventories[num].cells[y, x].PutForce(itemData, count);
     }
 
     [Command]
     public void CmdThroveItem(GameObject invObj, int num, string item, int y, int x, int count, Vector3 position, Quaternion rotation, GameObject owner)
     {
-        if (invObj.GetComponent<PlayerInventoryController>().inventories[num].data.RemoveItem(y, x, count))
+        if (invObj.GetComponent<InventoryController>().inventories[num].data.RemoveItem(y, x, count))
         {
             TargetRemoveItem(connectionToClient, invObj, num, item, y, x, count);
             var gameObject = Instantiate(Resources.Load(item), position, rotation) as GameObject;
@@ -210,9 +209,9 @@ public class Commands : NetworkBehaviour
     [Command]
     public void CmdReplaceItem(GameObject invObj, GameObject invObj2, int num, int num2, string item, int y, int x, int count, int y2, int x2)
     {
-        if (invObj.GetComponent<PlayerInventoryController>().inventories[num].data.RemoveItem(y, x, count))
+        if (invObj.GetComponent<InventoryController>().inventories[num].data.RemoveItem(y, x, count))
         {
-            var invData2 = invObj2.GetComponent<PlayerInventoryController>().inventories[num2].data;
+            var invData2 = invObj2.GetComponent<InventoryController>().inventories[num2].data;
             //print(invData2.data[y2, x2].Item2);
             var data2 = invData2.AddItemWithPos(item, count, y2, x2);
             TargetRemoveItem(connectionToClient, invObj, num, item, y, x, count);
@@ -220,7 +219,7 @@ public class Commands : NetworkBehaviour
             TargetForcePutItem(connectionToClient, invObj2, num2, item, y2, x2, invData2.data[y2, x2].Item2);
             if (data2.Item1 != "")
             {
-                invObj.GetComponent<PlayerInventoryController>().inventories[num].data.AddItemWithPos(data2.Item1, data2.Item2, y, x);
+                invObj.GetComponent<InventoryController>().inventories[num].data.AddItemWithPos(data2.Item1, data2.Item2, y, x);
                 TargetPutItem(connectionToClient, invObj, num, data2.Item1, y, x, data2.Item2);
             }
         }
@@ -229,7 +228,7 @@ public class Commands : NetworkBehaviour
     [Command]
     public void CmdFillAllPotions(int num, int y, int x)
     {
-        var controller = gameObject.GetComponent<PlayerInventoryController>();
+        var controller = gameObject.GetComponent<InventoryController>();
         var data = controller.inventories[num];
 
         //print(num + " : " + y + " : " + x + " : " + data.data.data[y, x].Item1);
@@ -251,17 +250,17 @@ public class Commands : NetworkBehaviour
     [Command]
     public void CmdUseItem(GameObject invObj, int num, string item, int y, int x, int count)
     {
-        var p = Resources.Load(invObj.GetComponent<PlayerInventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
+        var p = Resources.Load(invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
         var potion = p.GetComponent<Potion>();
         if (potion.isEmpty)
             return;
         var newPotionName = potion.emptyPrefabName;
         TargetUseItem(connectionToClient, invObj, num, item, y, x, count);
-        invObj.GetComponent<PlayerInventoryController>().inventories[num].data.RemoveItem(y, x, count);
+        invObj.GetComponent<InventoryController>().inventories[num].data.RemoveItem(y, x, count);
         if (newPotionName != null && newPotionName != string.Empty)
         {
             TargetForcePutItem(connectionToClient, invObj, num, newPotionName, y, x, count);
-            invObj.GetComponent<PlayerInventoryController>().inventories[num].data.AddItemWithPos(newPotionName, count, y, x);
+            invObj.GetComponent<InventoryController>().inventories[num].data.AddItemWithPos(newPotionName, count, y, x);
             //print(invObj.GetComponent<PlayerInventoryController>().inventories[num].data.data[y,x].Item1);
         }
         else
@@ -274,14 +273,14 @@ public class Commands : NetworkBehaviour
     [TargetRpc]
     void TargetRemoveItem(NetworkConnection target, GameObject invObj, int num, string item, int y, int x, int count)
     {
-        invObj.GetComponent<PlayerInventoryController>().inventories[num].cells[y, x].Remove(count);
+        invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].Remove(count);
     }
 
     [TargetRpc]
     void TargetUseItem(NetworkConnection target, GameObject invObj, int num, string item, int y, int x, int count)
     {
         var bar = gameObject.GetComponent<HealthBar>();
-        var p = Resources.Load(invObj.GetComponent<PlayerInventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
+        var p = Resources.Load(invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
         var potion = p.GetComponent<Potion>();
         bar.AddEnergy(potion.EnergyAdd);
         bar.AddWater(potion.WaterAdd);
@@ -344,7 +343,7 @@ public class Commands : NetworkBehaviour
     public void CmdWantToChangeInCar(GameObject carArea, string playerId, bool wantSit)
     {
         var area = carArea.GetComponentInChildren<CarAreaDoing>();
-        var player = _taskManager.GetPlayerData(playerId).playerObject;
+        var player = taskManager.GetPlayerData(playerId).playerObject;
 
         if (wantSit)
         {
@@ -524,14 +523,14 @@ public class Commands : NetworkBehaviour
     {
         RpcReadyToSkip(id, time, sleepArea, spriteNum);
         if (time != -1)
-            _taskManager.ReadyToSkip(id, time);
+            taskManager.ReadyToSkip(id, time);
     }
 
     [Command]
     public void CmdReadyToSkipWithoutSprite(string id, int time)
     {
         if (time != -1)
-            _taskManager.ReadyToSkip(id, time);
+            taskManager.ReadyToSkip(id, time);
     }
 
     [ClientRpc]
@@ -550,7 +549,7 @@ public class Commands : NetworkBehaviour
     public void WakeUp(GameObject sleepArea, string guid, bool needReturnItems, bool removing = false)
     {
         RpcWakeUp(sleepArea, guid, needReturnItems);
-        _taskManager.UnReadyToSkip(guid, removing);
+        taskManager.UnReadyToSkip(guid, removing);
     }
 
     [ClientRpc]
@@ -840,7 +839,7 @@ public class Commands : NetworkBehaviour
     [Command]
     public void CmdSkipTime(int ToTime, int multiplayer)
     {
-        _taskManager.SkipTo(ToTime, multiplayer);
+        taskManager.SkipTo(ToTime, multiplayer);
     }
 
     [Command]

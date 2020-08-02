@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WholeScript : MonoBehaviour, IScaleDoing
+public class WholeScript : MonoBehaviourExtension, IScaleDoing
 {
 
     private GameObject block;
@@ -19,6 +19,7 @@ public class WholeScript : MonoBehaviour, IScaleDoing
     GameObject[] parts = new GameObject[4];
 
     bool[,] squares = new bool[3,3];
+
 
     public GameObject Block
     {
@@ -54,9 +55,9 @@ public class WholeScript : MonoBehaviour, IScaleDoing
         }
     }
 
-    public void SetData(string data)
+    public void SetData(string newData)
     {
-        var d = data.Split('|');
+        var data = newData.Split('|');
         SpawnObjects();
     }
 
@@ -170,7 +171,7 @@ public class WholeScript : MonoBehaviour, IScaleDoing
     {
         if (IsEnd()) return;
         var pl = GameObject.Find("LocalPlayer");
-        var inv = pl.GetComponent<PlayerInventoryController>();
+        var inv = pl.GetComponent<InventoryController>();
         foreach (var item in items[currentLevel])
         {
             if (inv.CanPutItem(item.itemData.CopyItem())) 
@@ -236,7 +237,7 @@ public class WholeScript : MonoBehaviour, IScaleDoing
         for (int i = 0; i < count; i++)
         {
             var depth = Random.Range(1,4);
-            var ob = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<ObjectsScript>().GetRandomObject();
+            var ob = taskManager.GetComponent<ObjectsScript>().GetRandomObject();
             Vector3 pos = gameObject.transform.position + new Vector3(0.15f, 0.15f, 0) + new Vector3(Random.Range(0, 0.7f), Random.Range(0, 0.7f), 0.6f);
             GameObject.Find("LocalPlayer").GetComponent<Commands>().CmdSpawnFindObject(ob, pos, new Quaternion(0,0,Random.Range(-1f,1f), 1), gameObject, depth);
         }

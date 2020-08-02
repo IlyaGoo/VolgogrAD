@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public abstract class TriggerAreaDoing : MonoBehaviour {
+public abstract class TriggerAreaDoing : MonoBehaviourExtension {
 
     [SerializeField] string labelText = null;
     protected GameObject LabelObject;

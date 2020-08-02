@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http.Headers;
 using UnityEngine;
 
-public class DebafsController : MonoBehaviour
+public class DebafsController : MonoBehaviourExtension
 {
     [SerializeField] GameObject[] debafsPrefabs;
     [SerializeField] TaskManager manager;
@@ -11,8 +11,6 @@ public class DebafsController : MonoBehaviour
     public List<Debaf> currentDebafs = new List<Debaf>();
     int showCount = 0;
     readonly float offset = 50;
-
-    public GameObject Player => manager.LocalPlayer;
 
     public Debaf AddDebaf(int num, bool ce = true)
     {
@@ -32,7 +30,7 @@ public class DebafsController : MonoBehaviour
             showCount++;
         }
         currentDebafs.Add(dComponent);
-        dComponent.On(Player, -1, this, ce);
+        dComponent.On(localPlayer, -1, this, ce);
         return dComponent;
     }
 

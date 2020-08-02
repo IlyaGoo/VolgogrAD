@@ -10,7 +10,7 @@ public class DrinkAreaDoing : TriggerAreaDoing, IScaleDoing
     Moving mov;
     HealthBar bar;
     Commands cmd;
-    PlayerInventoryController controller;
+    InventoryController controller;
 
     public override bool Do(GameObject drinkPlayer)
     {
@@ -20,7 +20,7 @@ public class DrinkAreaDoing : TriggerAreaDoing, IScaleDoing
             mov = drinkPlayer.GetComponent<Moving>();
             bar = drinkPlayer.GetComponent<HealthBar>();
             cmd = drinkPlayer.GetComponent<Commands>();
-            controller = drinkPlayer.GetComponent<PlayerInventoryController>();
+            controller = drinkPlayer.GetComponent<InventoryController>();
         }
         //Создать у всех видимую шкалу, а у этого только действующую
         mov.SetScaleInHands(1, bar.Energy, true, 1, this);

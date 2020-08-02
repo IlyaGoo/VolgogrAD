@@ -34,7 +34,7 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
     public InventoryData data;
     public GameObject InventoryCintrollerObject = null;
     public bool puttable = true;
-    public int Number { get => System.Array.IndexOf(InventoryCintrollerObject.GetComponent<PlayerInventoryController>().inventories, this); }
+    public int Number { get => System.Array.IndexOf(InventoryCintrollerObject.GetComponent<InventoryController>().inventories, this); }
     public bool IsOpen { get { if (cells != null) return cells[0, 0].Object != null; else return false; } }
 
     public DescriptionController descController = null;

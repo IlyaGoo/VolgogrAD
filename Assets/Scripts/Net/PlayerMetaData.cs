@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class PlayerMetaData : MonoBehaviour
 {
+    public static PlayerMetaData instance;
     public NetWorkManager_Custom netWorkManager;
 
     [SerializeField] GameObject throwingMassegePrefab;
@@ -28,7 +29,14 @@ public class PlayerMetaData : MonoBehaviour
 
     public bool privateItems = false;
 
-    // Start is called before the first frame update
+    private PlayerMetaData()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
     void Start()
     {
         DontDestroyOnLoad(gameObject);

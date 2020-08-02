@@ -88,7 +88,7 @@ public class TaskControllerScript : NetworkBehaviour
 
         if (isServer)
         {
-            GameObject.Find("LocalPlayer").GetComponent<Commands>().CmdSetPlan(gameObject, Random.Range(0, plans.Length));
+            GameSystem.instance.localPlayer.GetComponent<Commands>().CmdSetPlan(gameObject, Random.Range(0, plans.Length));
             thisLogic = _mobManager.AddTask(this);
         }
     }

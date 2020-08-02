@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerInventoryController : MonoBehaviour {
+public class InventoryController : MonoBehaviour {
 
     public Inventory[] inventories;
 	

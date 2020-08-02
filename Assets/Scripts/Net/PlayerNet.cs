@@ -5,7 +5,7 @@ using UnityEngine;
 using Mirror;
 using System;
 
-public class PlayerNet : NetworkBehaviour, IAltLabelShower
+public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
 {
     public GameObject invPanelLeft;
     public GameObject invPanelRight;
@@ -19,29 +19,14 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
     public Commands cmd;
     [SerializeField]
     private AudioSource _audioSource;
-    private TaskManager _taskManager;
     public ListenersManager listenersManager;
     public HealthBar healthBar;
     public Skiper _skiper;
-    public PlayerInventoryController inventoryController;
+    public InventoryController inventoryController;
     [SerializeField] GameObject FListenerObject;
     public DescriptionController descriptionController;
 
-    public PlayerMetaData _meta;
-
     public void ShowLabel(GameObject player) { }
-
-    public TaskManager Task
-    {
-        get
-        {
-            if (_taskManager == null)
-            {
-                _taskManager = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>();
-            }
-            return _taskManager;
-        }
-    }
 
     Vector3 offset = Vector3.up;
     public Vector3 Offset { get => offset; }
@@ -129,13 +114,13 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
     public void AddDoing(string id, TriggerAreaDoing doing)
     {
         if (!isServer) return;
-        Task.GetPlayerData(id).AddDoing(doing);
+        taskManager.GetPlayerData(id).AddDoing(doing);
     }
 
     public void RemoveDoing(string id, TriggerAreaDoing doing)
     {
         if (!isServer) return;
-        Task.GetPlayerData(id).RemoveDoing(doing);
+        taskManager.GetPlayerData(id).RemoveDoing(doing);
     }
 
     [Command]
@@ -276,7 +261,7 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
         var wholeObject = Instantiate(Resources.Load(prefab), position, rotation) as GameObject;
         NetworkServer.Spawn(wholeObject);
         wholeObject.GetComponent<WholeScript>().SetData(meta);
-        Task.wholes.Add(wholeObject);
+        taskManager.wholes.Add(wholeObject);
         //RpcSetWholeParent(gameObject);
     }
 
@@ -300,7 +285,7 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
     private void CmdSpawnParts(int x, int y, int z)
     {
         RpcSpawnParts(x, y, z);
-        Task.PlayersDatas[GetComponent<NetworkIdentity>().netId.ToString()].SetBody(x, y, z);
+        taskManager.PlayersDatas[GetComponent<NetworkIdentity>().netId.ToString()].SetBody(x, y, z);
     }
 
     [Command]
@@ -353,18 +338,28 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
     [Command]
     void CmdSendPlayerData(string identity, string name, GameObject playerObject)
     {
-        Task.PlayerSendedData(identity, name, playerObject);
+        taskManager.PlayerSendedData(identity, name, playerObject);
         id = identity;
+    }
+
+    void SetGameSystem()
+    {
+        GameSystem.instance.localPlayer = gameObject;
+        GameSystem.instance.playerNet = this;
+        GameSystem.instance.commands = cmd;
+        GameSystem.instance.chatPlayerHelper = GetComponent<ChatPlayerHelper>();
+        GameSystem.instance.playerInventoryController = GetComponent<InventoryController>();
+        GameSystem.instance.localPlayerId = GetComponent<NetworkIdentity>().netId.ToString();
     }
 
     public override void OnStartLocalPlayer()
     {
-        _meta = GameObject.Find("PlayerMetaData").GetComponent<PlayerMetaData>();
-        _taskManager = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>();
-        _taskManager._taker = _taker;
+        SetGameSystem();
+
+        taskManager._taker = _taker;
         foreach (var helper in FindObjectsOfType<ChatPlayerHelper>())
-            helper.Init(_meta, _taskManager);//Инициализируем ChatPlayerHelper
-        _taskManager.Init(gameObject);//Инициализируем TaskManager
+            helper.Init();//Инициализируем ChatPlayerHelper
+        taskManager.Init();//Инициализируем TaskManager
 
 
         //_taskManager.globalLight = cameraLight;
@@ -379,12 +374,12 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
             legsNum = int.Parse(bodyNums[2]);
 
         }*/
-        _taskManager.chatHelper.Nickname = nickname = _meta.nickname;
-        id = GetComponent<NetworkIdentity>().netId.ToString();
-        CmdSendPlayerData(id, nickname, gameObject);
-        _moving.headNum = _meta.headNum;
-        _moving.bodyNum = _meta.bodyNum;
-        _moving.lagsNum = _meta.legsNum;
+        taskManager.chatHelper.Nickname = nickname = playerMetaData.nickname;
+        id = localPlayerId;
+        CmdSendPlayerData(localPlayerId, nickname, gameObject);
+        _moving.headNum = playerMetaData.headNum;
+        _moving.bodyNum = playerMetaData.bodyNum;
+        _moving.lagsNum = playerMetaData.legsNum;
 
         CmdSpawnParts(_moving.headNum, _moving.bodyNum, _moving.lagsNum);
         //CmdSendAnimation();
@@ -400,11 +395,11 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
         GetComponent<HealthBar>().enabled = true;
         GetComponent<AltListener>().enabled = true;
 
-        _taskManager.optionsScript.Init();
+        taskManager.optionsScript.Init();
 
-        canvas = _taskManager.canvas;
-        invPanelLeft = _taskManager.invPanelLeft;
-        invPanelRight = _taskManager.invPanelRight;
+        canvas = taskManager.canvas;
+        invPanelLeft = taskManager.invPanelLeft;
+        invPanelRight = taskManager.invPanelRight;
 
         descriptionController = canvas.GetComponent<DescriptionController>();
         descriptionController.Player = gameObject;
@@ -435,11 +430,11 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
         //Invoke("Request", 0.1f);
         if (!isServer)
             GetComponent<Connector>().RequestAll();
-        _taskManager._mobManager.Init(gameObject, this);
+        taskManager._mobManager.Init(gameObject, this);
         _taker.Init();
         GetComponentInChildren<CircleTrigger>().isController = true;
-        _taskManager.menuSctipt.manager = _meta.netWorkManager;
-        _taskManager.menuSctipt.manager.SetLoading(false);
+        taskManager.menuSctipt.manager = playerMetaData.netWorkManager;
+        taskManager.menuSctipt.manager.SetLoading(false);
     }
 
     void Request()
@@ -456,10 +451,10 @@ public class PlayerNet : NetworkBehaviour, IAltLabelShower
 
     void OnDestroy()
     {
-        if (!isLocalPlayer && Task.isServer)
+        if (!isLocalPlayer && taskManager.isServer)
         {
-            Task.GetPlayerData(id).EndAllDoins(id);
-            Task.PlayerDisConnectedNickname(id);//Здесь же удаляем из datas
+            taskManager.GetPlayerData(id).EndAllDoins(id);
+            taskManager.PlayerDisConnectedNickname(id);//Здесь же удаляем из datas
             Destroy(inventoryData);
         }
     }

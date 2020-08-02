@@ -6,35 +6,12 @@ using UnityEngine;
 using Mirror;
 using System.Globalization;
 
-public class ChatPlayerHelper : NetworkBehaviour {
-
+public class ChatPlayerHelper : NetworkBehaviourExtension { 
     public ChatHelper _gameHelper;
-    PlayerMetaData meta;
-/*    public PlayerMetaData Meta
-    {
-        get
-        {
-            if (meta == null)
-                meta = FindObjectOfType<PlayerMetaData>();
-            return meta;
-        }
-    }*/
-    TaskManager task;
-/*    public TaskManager Task
-    {
-        get
-        {
-            if (task == null)
-                task = FindObjectOfType<TaskManager>();
-            return task;
-        }
-    }*/
 
-    public void Init(PlayerMetaData newMeta, TaskManager newTask)
+    public void Init()
     {
         if (_gameHelper != null) return;
-        task = newTask;
-        meta = newMeta;
         _gameHelper = FindObjectOfType<ChatHelper>();
 
         if (isLocalPlayer)
@@ -53,7 +30,7 @@ public class ChatPlayerHelper : NetworkBehaviour {
     [Command]
     public void CmdSend(string id, string nickname, string message)
     {
-        if (message[0] == '/' && meta.cheatsAavable)
+        if (message[0] == '/' && playerMetaData.cheatsAavable)
         {
             string[] command = message.Substring(1).Split(' ');
             switch (command[0].ToLower())
@@ -73,7 +50,7 @@ public class ChatPlayerHelper : NetworkBehaviour {
                         try
                         {
                             time = int.Parse(timePart[0]) * 60 + int.Parse(timePart[1]);
-                            if (task.gameTimer > time)
+                            if (taskManager.gameTimer > time)
                                 time += 1439;//нужно пересечь ночь, которая отнимает это кол-во
                         }
                         catch (FormatException)
@@ -122,7 +99,7 @@ public class ChatPlayerHelper : NetworkBehaviour {
     [ClientRpc]
     public void RpcSetPrivate(bool newState)
     {
-        meta.privateItems = newState;
+        playerMetaData.privateItems = newState;
     }
 
     [ClientRpc]

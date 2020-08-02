@@ -156,7 +156,7 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     public void OnDrop(PointerEventData eventData)
     {
         if (!CellRef.CanInteract(invObj.Player)) return;
-        var mouseCell = invObj.Player.GetComponent<PlayerInventoryController>().inventories[2].cells[0, 0];
+        var mouseCell = invObj.Player.GetComponent<InventoryController>().inventories[2].cells[0, 0];
         if (mouseCell.ItemName != "")
         {
             invObj.Player.GetComponent<Commands>().CmdReplaceItem(invObj.Player, invObj.InventoryCintrollerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);
@@ -184,7 +184,7 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     void IfClickOn()
     {
 
-        var mouseCell = invObj.Player.GetComponent<PlayerInventoryController>().inventories[2].cells[0, 0];
+        var mouseCell = invObj.Player.GetComponent<InventoryController>().inventories[2].cells[0, 0];
         if (mouseCell.ItemName != "")
         {
             invObj.Player.GetComponent<Commands>().CmdReplaceItem(invObj.Player, invObj.InventoryCintrollerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);

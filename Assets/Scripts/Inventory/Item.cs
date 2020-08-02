@@ -2,7 +2,7 @@
 using System;
 using TMPro;
 
-public class Item : MonoBehaviour, ICloneable, IAltLabelShower, ICanBeOwn
+public class Item : MonoBehaviourExtension, ICloneable, IAltLabelShower, ICanBeOwn
 {
 
     public string Title;
@@ -56,7 +56,7 @@ public class Item : MonoBehaviour, ICloneable, IAltLabelShower, ICanBeOwn
 
     public bool CanInteract(GameObject mayBeOwner)
     {
-        return owner == null || owner == mayBeOwner || (owner.CompareTag("Player") && !owner.GetComponent<StandartMoving>().PlNet()._meta.privateItems);
+        return owner == null || owner == mayBeOwner || (owner.CompareTag("Player") && !playerMetaData.privateItems);
     }
 
     public ItemData CopyItem()

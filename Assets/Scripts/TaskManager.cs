@@ -6,7 +6,8 @@ using Mirror;
 using System.Linq;
 using UnityEngine.Experimental.Rendering.Universal;
 
-public class TaskManager : NetworkBehaviour {
+public class TaskManager : NetworkBehaviourExtension {
+    public static TaskManager instance;
     public GameObject canvas;
     public GameObject invPanelLeft;
     public GameObject invPanelRight;
@@ -16,7 +17,6 @@ public class TaskManager : NetworkBehaviour {
     public CampEnterAreaDoing[] campsAreas;
     public CarAreaDoing[] carsAreas;
     public RadioScript radioScript;
-    public GameObject LocalPlayer;
     public List<GameObject> wholes = new List<GameObject>();
 
     public ObjectsScript objectsScript;
@@ -38,7 +38,7 @@ public class TaskManager : NetworkBehaviour {
     [SerializeField] float speedTimeMode = 0.1f;
     private float currentTimeMode;
 
-    private Dictionary<string, float> playersSkipDict = new Dictionary<string, float>();
+    private readonly Dictionary<string, float> playersSkipDict = new Dictionary<string, float>();
     private int endSkipTime = 0;
 
     [SerializeField] private GameObject timerObject = null;
@@ -55,12 +55,11 @@ public class TaskManager : NetworkBehaviour {
     public bool needToUpdate = true;
 
     public Light2D globalLight = null;
-
-    List<TaskControllerScript> TaskControllers = new List<TaskControllerScript>();
+    readonly List<TaskControllerScript> TaskControllers = new List<TaskControllerScript>();
 
     [SerializeField] private GameObject[] taskController;
 
-    public Dictionary<string, PlayerInfo> PlayersDatas = new Dictionary<string, PlayerInfo>();//netId Data
+    public readonly Dictionary<string, PlayerInfo> PlayersDatas = new Dictionary<string, PlayerInfo>();//netId Data
 
     Commands _cmd;
 
@@ -70,12 +69,19 @@ public class TaskManager : NetworkBehaviour {
         {
             if (_cmd == null)
             {
-                _cmd = LocalPlayer.GetComponent<Commands>();
+                _cmd = localPlayer.GetComponent<Commands>();
             }
             return _cmd;
         }
     }
 
+    private TaskManager()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     public PlayerInfo GetPlayerData(string id)
     {
@@ -87,9 +93,8 @@ public class TaskManager : NetworkBehaviour {
             return null;
     }
 
-    public void Init(GameObject player)
+    public void Init()
     {
-        LocalPlayer = player;
         //LocalPlayer.GetComponent<PlayerNet>().RpcSendNickName();
         if (isServer)
         {
@@ -106,13 +111,13 @@ public class TaskManager : NetworkBehaviour {
     {
         if (PlayersDatas.ContainsKey(identity) || !isServer) return;
         PlayersDatas.Add(identity, new PlayerInfo(name, playerObject));
-        LocalPlayer.GetComponent<ChatPlayerHelper>().RpcSendLine(name + " присоединился к игре");
+        GameSystem.instance.chatPlayerHelper.RpcSendLine(name + " присоединился к игре");
     }
 
     public void PlayerDisConnectedNickname(string identity)
     {
         if (!PlayersDatas.ContainsKey(identity)) return;
-        LocalPlayer.GetComponent<ChatPlayerHelper>().RpcSendLine(PlayersDatas[identity].nickname + " вышел из игры");
+        localPlayer.GetComponent<ChatPlayerHelper>().RpcSendLine(PlayersDatas[identity].nickname + " вышел из игры");
         PlayersDatas.Remove(identity);
         
     }
@@ -424,7 +429,7 @@ public class TaskManager : NetworkBehaviour {
     {
         if (nowSleepObject != null)
         {
-            nowSleepObject.SendReadyToSkip(LocalPlayer.GetComponent<NetworkIdentity>().netId.ToString());
+            nowSleepObject.SendReadyToSkip(localPlayer.GetComponent<NetworkIdentity>().netId.ToString());
         }
     }
 
