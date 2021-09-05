@@ -7,7 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
+public class Inventory : MonoBehaviourExtension, IListener, INumListener, IScrollListener
 {
 
     public int ROWS = 4;
@@ -32,38 +32,10 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
     int currentRaw = 0;
     public bool freeze = false;
     public InventoryData data;
-    public GameObject InventoryCintrollerObject = null;
+    public GameObject InventoryControllerObject = null;
     public bool puttable = true;
-    public int Number { get => System.Array.IndexOf(InventoryCintrollerObject.GetComponent<InventoryController>().inventories, this); }
+    public int Number { get => System.Array.IndexOf(InventoryControllerObject.GetComponent<InventoryController>().inventories, this); }
     public bool IsOpen { get { if (cells != null) return cells[0, 0].Object != null; else return false; } }
-
-    public DescriptionController descController = null;
-
-
-    GameObject _player;
-    ListenersManager lManaher;
-    public PlayerNet playNet;
-    public Moving mov;
-    public GameObject Player { get 
-        {
-            if (_player == null)
-            {
-                _player = GameObject.Find("LocalPlayer");
-                lManaher = _player.GetComponent<ListenersManager>();
-                playNet = _player.GetComponent<PlayerNet>();
-                mov = _player.GetComponent<Moving>();
-            }
-            return _player;
-                }
-        set
-        {
-            if (_player != null) return;
-            _player = value;
-            lManaher = _player.GetComponent<ListenersManager>();
-            playNet = _player.GetComponent<PlayerNet>();
-            mov = _player.GetComponent<Moving>();
-        }
-    }
 
     public ItemData HasIn(string name)
     {
@@ -72,6 +44,21 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
             if (cell.ItemName == name) return cell.Content;
         }
         return null;
+    }
+
+    public ItemData HasInCategory(ItemCategory category)//Ищет самый ахуенный предмет с определенной категорией
+    {
+        int maxQality = -1;
+        ItemData res = null;
+        foreach (var cell in cells)
+        {
+            if (cell.Content != null && cell.Content.Type == category && cell.Content.itemQality > maxQality)
+            {
+                maxQality = cell.Content.itemQality;
+                res = cell.Content;
+            }
+        }
+        return res;
     }
 
     public void BackInHands()
@@ -133,7 +120,7 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
         else
             Clear();
 
-        Player.GetComponent<Commands>().CmdRequestInventory(InventoryCintrollerObject, Number);
+        localCommands.CmdRequestInventory(InventoryControllerObject, Number);
     }
 
     public void Clear()
@@ -143,17 +130,16 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
                 cells[y, x].Clear();
     }
 
-    public void Open (GameObject pl, bool needRequest = true, bool isLeftPos = true) {
+    public void Open (bool needRequest = true, bool isLeftPos = true) {
         if (cells != null && cells[0, 0].Object != null)
             return;
-        Player = pl;
         switch (inventoryType)
         {
             case InventoryType.MainInventory:
                 {
                     if (needRequest) RequesData();
-                    lManaher.EscListeners.Add(this);//добавляем, что можем закрыться по esc
-                    var currentPanel = playNet.invPanelLeft;
+                    localListenersManager.EscListeners.Add(this);//добавляем, что можем закрыться по esc
+                    var currentPanel = localPlayerNet.invPanelLeft;
                     if (panelSprite != null)
                         currentPanel.GetComponent<Image>().sprite = panelSprite;
                     currentPanel.SetActive(true);
@@ -165,17 +151,17 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
                 }
             case InventoryType.Panel:
                 if (needRequest) RequesData();
-                parent = GameObject.FindGameObjectWithTag("ToolsPanel").transform;
+                parent = taskManager.toolsPanelTransform;
                 Reference = Resources.Load("Inventory/ToolsPanelCell") as GameObject;
                 break;
             case InventoryType.EmptyInventory:
-                parent = GameObject.FindGameObjectWithTag("MouseInventoryPanel").transform;
+                parent = taskManager.mouseInventoryPanelTransform;
                 Reference = Resources.Load("Inventory/EmptyCell") as GameObject;
                 break;
             case InventoryType.Standart:
                 {
                     if (needRequest) RequesData();
-                    var panel = playNet.invPanelRight;
+                    var panel = localPlayerNet.invPanelRight;
                     if (panelSprite != null)
                         panel.GetComponent<Image>().sprite = panelSprite;
                     panel.SetActive(true);
@@ -186,8 +172,6 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
                     break;
                 }
         }
-
-        descController = playNet.descriptionController;
 
         bool needInit = false;
         if (cells == null)
@@ -216,9 +200,8 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
         if (inventoryType == InventoryType.Panel) 
         { 
             cells[0, 0].SetTarget(true, freeze);
-            var listenerManager = Player.GetComponent<ListenersManager>();
-            listenerManager.AlphaListeners.Add(this);
-            listenerManager.ScrollListeners.Add(this);
+            localListenersManager.AlphaListeners.Add(this);
+            localListenersManager.ScrollListeners.Add(this);
         }
     }
 
@@ -235,13 +218,14 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
         switch (inventoryType)
         {
             case InventoryType.MainInventory:
-                playNet.invPanelLeft.SetActive(false);
-                lManaher.EscListeners.Remove(this);
-                if (playNet.invPanelRight.activeSelf)
-                    playNet.invPanelRight.transform.GetChild(0).GetChild(0).GetComponent<HoverCell>().invObj.Close();
+                localPlayerNet.invPanelLeft.SetActive(false);
+                localListenersManager.EscListeners.Remove(this);
+                if (localPlayerNet.invPanelRight.activeSelf)
+                    localPlayerNet.invPanelRight.transform.GetChild(0).GetChild(0).GetComponent<HoverCell>().invObj.Close();
                 break;
             case InventoryType.Standart:
-                playNet.invPanelRight.SetActive(false);
+                localPlayerNet.invPanelRight.SetActive(false);
+                localTaker.currentAreaDoing.GetComponent<TriggerAreaDoing>().RefreshStateLabel();
                 break;
         }
     }
@@ -311,7 +295,7 @@ public class Inventory : MonoBehaviour, IListener, INumListener, IScrollListener
             Close();
         }
         else
-            Open(Player, true, false);
+            Open(true, false);
     }
 }
 

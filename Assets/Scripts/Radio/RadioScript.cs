@@ -5,9 +5,18 @@ using UnityEngine;
 
 public class RadioScript : MonoBehaviour
 {
+    public static RadioScript instance;
     public GameObject panelesParent;
     public OnceRadio[] paneles;
     public int currentRadioChoosenNum = -1;
+
+    private RadioScript()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     public void ChooseRadio(int num)
     {

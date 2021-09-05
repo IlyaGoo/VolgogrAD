@@ -4,11 +4,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Menu : MonoBehaviour {
+public class Menu : ButtonInfo {
 
 	// Use this for initialization
-
-    public ButtonInfo mainButton;
+    
     public TaskMenuScript menuScript;
     public List<Menu> menues;
     public bool hided = false;
@@ -16,7 +15,7 @@ public class Menu : MonoBehaviour {
     public List<ButtonInfo> ALLminiButtons = new List<ButtonInfo>();
     public GameObject secondButton2;
 
-    public bool thisMenuTarget = false;
+    public bool thisMenuTarget => targetButton != null;
     public ButtonInfo targetButton;
     public Transform currentTarget;
     public MapScript mapScript;
@@ -39,16 +38,16 @@ public class Menu : MonoBehaviour {
         }
     }
 
-    public ButtonInfo addButton(string text, Transform newTarget = null, int PointNum = -1)
+    public ButtonInfo addButton(string text, Transform newTarget = null, MiniGameController gameController = null)
     {
-        var newMiniMenu = Instantiate(secondButton2, new Vector3(mainButton.buttonObject.transform.position.x, mainButton.buttonObject.transform.position.y - 50*(1+miniButtons.Count), 0), Quaternion.identity, mainButton.buttonObject.transform);
+        var newMiniMenu = Instantiate(secondButton2, new Vector3(buttonObject.transform.position.x, buttonObject.transform.position.y - 50*(1+miniButtons.Count), 0), Quaternion.identity, buttonObject.transform);
         var newMiniMenuInfo = newMiniMenu.GetComponent<ButtonInfo>();
 
-        newMiniMenuInfo.numberCostil = costilNum;
+        newMiniMenuInfo.gameController = gameController;
         costilNum++;
 
         newMiniMenuInfo.text = text;
-        newMiniMenuInfo.ChangePoint(PointNum);
+        newMiniMenuInfo.ChangePoint(gameController);
         newMiniMenuInfo.ownMenu = this;
         newMiniMenuInfo.buttonObject = newMiniMenu;
         miniButtons.Add(newMiniMenuInfo);
@@ -58,14 +57,9 @@ public class Menu : MonoBehaviour {
         newMiniMenuInfo.targetTransform = newTarget;
 
         Button btnPlane = newMiniMenu.GetComponent<Button>();
-        btnPlane.onClick.AddListener(delegate { FindObjectOfType<TaskMenuScript>().ChangeTarget(newMiniMenuInfo); });
-
-        if (miniButtons.Count == 1)
-        {
-            if (thisMenuTarget && mainButton.isTarget) { newMiniMenuInfo.ChangeTarget(true); currentTarget = newTarget; }
-            mainButton.ChangeTarget(false); mainButton.canChange = false;
-        }
-
+        btnPlane.onClick.AddListener(
+            delegate { menuScript.ChangeTargerInterface(newMiniMenuInfo); });
+            //delegate { FindObjectOfType<TaskMenuScript>().ChangeTarget(newMiniMenuInfo); });//todo
         return newMiniMenuInfo;
     }
 
@@ -80,12 +74,22 @@ public class Menu : MonoBehaviour {
         }
         for (var i = menues.IndexOf(this) + 1; i < menues.Count; i++)
         {
-            menues[i].mainButton.buttonObject.transform.position = new Vector3(menues[i].mainButton.buttonObject.transform.position.x, menues[i].mainButton.buttonObject.transform.position.y + 50, menues[i].mainButton.buttonObject.transform.position.z);
+            menues[i].buttonObject.transform.position = new Vector3(menues[i].buttonObject.transform.position.x, menues[i].buttonObject.transform.position.y + 50, menues[i].buttonObject.transform.position.z);
         }
         miniButtons.RemoveAt(num);
         if (button.isTarget)
-            if(miniButtons.Count > 0) { miniButtons[0].ChangeTarget(true); currentTarget = miniButtons[0].targetTransform; targetButton = miniButtons[0]; }
-            else { currentTarget = mainButton.targetTransform; mainButton.ChangeTarget(true); }
+        {
+            gameController._taskController.ChangeTarget(button.gameController.taskPoint);
+            if (miniButtons.Count > 0)
+            {
+                gameController._taskController.ChangeTarget(miniButtons[0].gameController.taskPoint);
+            }
+            else
+            {
+                ChangeTarget(true);
+            }
+        }
+
         Destroy(button.buttonObject);
     }
 }

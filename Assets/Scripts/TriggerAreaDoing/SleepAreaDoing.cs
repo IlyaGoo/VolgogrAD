@@ -4,10 +4,12 @@ using TMPro;
 using UnityEngine;
 using Mirror;
 using UnityEditor;
+using System.Linq;
 
 public class SleepAreaDoing : TriggerAreaDoing
 {
-
+    [SerializeField] Vector3 playerSleepOffset = Vector3.zero;//Смещение игрока при сне, необходимо, чтобы место сна было посередине экрана
+    [SerializeField] Camp camp;
     public int skipTime;
     public int maxCount = 1;
     [SerializeField] float offset = 0.3f;
@@ -15,93 +17,75 @@ public class SleepAreaDoing : TriggerAreaDoing
     [SerializeField] private bool needChangeSprite = false;
     [SerializeField] private SpriteRenderer[] generalObject;
     public GameObject mainObject;
-    Debaf currentZharaDebaf;
-    Debaf currentChillBaf;
-    Debaf currentSleepBaf;
-    readonly string[] labelTexts = new string[2] {"Лечь спать", "Встать"};
+    protected virtual string[] GetLabelTexts() => new string[2] {"Лечь спать", "Встать"};
+    private bool ContainsLocalPlayer =>
+        new List<GameObject>(sleepers.Select(sleeper => sleeper.entityObject)).Contains(localPlayer);
 
-    public List<string> sleepers = new List<string>();
-    TaskManager taskManagerRef;
-    TaskManager TaskManagerRef {
-        get
-        {
-            if (taskManagerRef == null)
-                taskManagerRef = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>();
-            return taskManagerRef;
-        }
-    }
-    PlayerNet playNet;
-    public PlayerNet PlayNet
-    {
-        get
-        {
-            if (playNet == null)
-                playNet = Player.GetComponent<PlayerNet>();
-            return playNet;
-        }
-        set => playNet = value;
-    }
-    GameObject player;
-    public GameObject Player
-    {
-        get
-        {
-            if (player == null)
-                player = GameObject.Find("LocalPlayer");
-            return player;
-        }
-        set => player = value;
-    }
-    Moving Mov => PlayNet._moving;
-    Commands Cmd => PlayNet.cmd;
-    InventoryController InventoryController => PlayNet.inventoryController;
+    public bool HaveSpace => sleepers.Count < maxCount;
 
-    DebafsController debafsControllerRef;
-    DebafsController DebafsControllerRef
+    public List<AbstractEntityInfo> sleepers = new List<AbstractEntityInfo>();
+
+    public override bool CanInteract(GameObject interactEntity)
     {
-        get
-        {
-            if (debafsControllerRef == null)
-                debafsControllerRef = FindObjectOfType<DebafsController>();
-            return debafsControllerRef;
-        }
+        if (ContainsLocalPlayer) return true;
+        if (camp != null)//Если зона сна - это часть палатки, то нужно чекать приват у нее//todo палатка должна быть одновременно и тем и тем, чтобы такой хуетой не заниматься
+            return camp.CanInteract(interactEntity);
+        return owner == null || owner == interactEntity || owner.CompareTag("Player") && !playerMetaData.privateEnable;
     }
 
     public override bool NeedShowLabel()
     {
-        return (sleepers.Count < maxCount || sleepers.Contains(PlayNet.id)) && PlayerThere;
+        return (HaveSpace || ContainsLocalPlayer) && PlayerThere;
     }
-
-    public void AddOne(string newSleeper, Sprite sprite = null)
+    
+    public bool AddOneEntity(AbstractEntityInfo entityInfo)
     {
-        PlayNet.AddDoing(newSleeper, this);//Добавляем в player net текущее действие, чтобы при дисконекте встать
-        sleepers.Add(newSleeper);
-        TurnLabel(NeedShowLabel());
+        if (sleepers.Contains(entityInfo)) return false;//Возможно при коннекте
+
+        switch (entityInfo)
+        {
+            case PlayerInfo playerInfo:
+                playerInfo.entityObject.GetComponent<PlayerNet>().Panel = null;
+                if (localCommands.isServer)
+                    localPlayerNet.AddDoing(playerInfo.identity, this);//Добавляем в player net текущее действие, чтобы при дисконекте встать
+                TurnLabel(NeedShowLabel());
+                break;
+            case BotInfo botInfo: 
+                botInfo.entityObject.transform.position = transform.position + playerSleepOffset;
+                var botController = botInfo.entityObject.GetComponent<MobController>();
+                botController.SetAllRenders(false);
+                botInfo.entityObject.GetComponent<Collider2D>().isTrigger = true;
+                break;
+        }
+        var spritesHead = Resources.LoadAll<Sprite>("SpritesForBody/Head" + entityInfo.GetHeadNum);
         if (needChangeSprite)
         {
-            generalObject[sleepers.Count - 1].sprite = sprite;
+            generalObject[sleepers.Count - 1].sprite = spritesHead[3];
             UpdateSprites();
         }
+        sleepers.Add(entityInfo);
+        return true;
     }
 
-    void UpdateSprites()
+    public void RemoveOneEntity(AbstractEntityInfo entityInfo)
     {
-        for (var i = 0; i < sleepers.Count; i++)
-        {
-            generalObject[i].transform.position = new Vector3(
-                transform.position.x - offset * ((sleepers.Count - 1) / 2f - i),
-                generalObject[0].transform.position.y,
-                -0.0001f * (i + 1)//чтобы были друг за другом
-                );
-        }
-    }
-
-    public void RemoveOne(string newSleeper, bool needReturnItems)
-    {
-        var index = sleepers.IndexOf(newSleeper);
+        var index = sleepers.IndexOf(entityInfo);
         if (index == -1) return;//Может возникнуть, когда спали командой
-        if (needReturnItems) //Когда убираем дисконектнувшегося игрока, ничего возвращать не нужно
-            PlayNet.RemoveDoing(newSleeper, this);//Убираем из player net текущее действие
+        
+        switch (entityInfo)
+        {
+            case PlayerInfo playerInfo:
+                if (!playerInfo.IsDisconnected) //Когда убираем дисконектнувшегося игрока, ничего возвращать не нужно
+                    localPlayerNet.RemoveDoing(playerInfo.identity, this);//Убираем из player net текущее действие
+                RefreshStateLabel();
+                break;
+            case BotInfo botInfo:
+                botInfo.entityObject.transform.position = transform.position;//todo скорее всего с игроком делаем то же самое
+                var botController = botInfo.entityObject.GetComponent<MobController>();
+                botController.SetAllRenders(true);
+                botInfo.entityObject.GetComponent<Collider2D>().isTrigger = false;
+                break;
+        }
         if (needChangeSprite)
         {
             for (var i = index; i < sleepers.Count; i++)
@@ -112,112 +96,100 @@ public class SleepAreaDoing : TriggerAreaDoing
                     generalObject[i].sprite = generalObject[i + 1].sprite;
             }
         }
-        sleepers.Remove(newSleeper);
+        sleepers.Remove(entityInfo);
         UpdateSprites();
-        TurnLabel(NeedShowLabel());
     }
 
-    public void VakeUp()
+    void UpdateSprites()
     {
-        if (currentZharaDebaf != null)
-            currentZharaDebaf.Off();
-        if (currentChillBaf != null)
-            currentChillBaf.Off();
-        if (currentSleepBaf != null)
-            currentSleepBaf.Off();
-        TaskManagerRef.nowSleepObject = null;
-        ChangeText(labelTexts[0]);
-        //sleepers.Remove(player);
-        PlayNet.CmdWakeUp();
-        if (Mov.objectsStopsThrove.Contains(gameObject))
+        if (!needChangeSprite) return;
+        for (var i = 0; i < sleepers.Count; i++)
         {
-            Mov.objectsStopsThrove.Remove(gameObject);
+            generalObject[i].transform.position = new Vector3(
+                transform.position.x - offset * ((sleepers.Count - 1) / 2f - i),
+                generalObject[0].transform.position.y,
+                -0.0001f * (i + 1)//чтобы были друг за другом
+                );
+        }
+    }
+
+    public void WakeUp()
+    {
+        localCommands.CmdWakeUp(mainObject, localPlayerNet.id);
+    }
+
+    /** Действия, которые необходимо выполнить только локально
+     * Вызываются с сервера, после прохождения валидации на то, что можно встать
+     */
+    public void LocalWakeUp()
+    {
+        taskManager.nowSleepObject = null;
+        ChangeText(GetLabelTexts()[0]);
+        UpdateTextLabel();
+        if (localMoving.objectsStopsThrove.Contains(gameObject))
+        {
+            localMoving.objectsStopsThrove.Remove(gameObject);
         }
         //pl.GetComponent<HealthBar>().multiplayer = 1;
-        InventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
-        InventoryController.inventories[0].BackInHands();//Возвращаем в руки все
+        localPlayerInventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
+        localPlayerInventoryController.inventories[0].BackInHands();//Возвращаем в руки все
 
-        Player.transform.parent = null;
-        Player.transform.position = new Vector3(Player.transform.position.x, Player.transform.position.y, Player.transform.position.y / 100);
-        Cmd.CmdWakeUp(mainObject, PlayNet.id, true);
+        localPlayer.transform.parent = null;
+        localPlayer.transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.y / 100);
     }
 
-    public override void DisconectExit(string id)
+    public override void DisconnectExit(string id)
     {
-        if (sleepers.Contains(id))
+        if (sleepers.Contains(EntitysController.instance.GetPlayerData(id)))
         {
-            Cmd.WakeUp(mainObject, id, false, true);
-        }
-    }
-
-    public override void WasdDoing(GameObject player)
-    {
-        if (sleepers.Contains(PlayNet.id))
-        {
-            VakeUp();
-            UpdateTextLabel();
+            localCommands.WakeUp(mainObject, id, true);
         }
     }
 
-    public override bool Do(GameObject sleepPlayer)
+    public override void WasdDoing()
     {
-        //TurnLabel(false);
-        if (PlayNet == null)
+        if (ContainsLocalPlayer)
         {
-            Player = sleepPlayer;
-            PlayNet = Player.GetComponent<PlayerNet>();
+            WakeUp();
         }
+    }
 
-        if (sleepers.Contains(PlayNet.id))
+    public override bool Do()
+    {
+        if (ContainsLocalPlayer)
         {
-            VakeUp();
+            WakeUp();
         }
-        else if (sleepers.Count < maxCount)
+        else if (HaveSpace)
         {
-            ChangeText(labelTexts[1]);
-            //sleepers.Add(player);
-
-            //player.GetComponent<HealthBar>().multiplayer = 10;
-            playNet.CmdUnstuck();
-            Mov.plNet.cmd.CmdDestroyObjectInHands(Mov.gameObject); //Убираем из рук все вещи
-            if (!Mov.objectsStopsThrove.Contains(gameObject))
-            {
-                Mov.objectsStopsThrove.Add(gameObject);
-            }
-            InventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
-            sleepPlayer.transform.parent = transform;
-            sleepPlayer.transform.position = transform.position;
-            if (TaskManagerRef.gameTimer < skipTime)
-            {
-                Cmd.CmdReadyToSkip(PlayNet.id, skipTime, mainObject, playNet._moving.headNum);
-                currentSleepBaf = DebafsControllerRef.AddDebaf(3, false);//кидаем сон
-            }
-            else
-            {
-                Cmd.CmdReadyToSkip(PlayNet.id, -1, mainObject, playNet._moving.headNum);
-                TaskManagerRef.nowSleepObject = this;
-                currentZharaDebaf = DebafsControllerRef.AddDebaf(0, false);//кидаем жару
-                currentChillBaf = DebafsControllerRef.AddDebaf(2, false);//кидаем чил
-            }
+            localCommands.CmdGoToSleep(mainObject);
         }
         else
         {
             return false;
         }
-        UpdateTextLabel();
         return true;
+    }
+
+    /** Локальные дейтсвия перед сном, типа фриза инвентаря */
+    public void LocalPrepareToSleep()
+    {
+        ChangeText(GetLabelTexts()[1]);
+        UpdateTextLabel();
+        if (!localMoving.objectsStopsThrove.Contains(gameObject))
+        {
+            localMoving.objectsStopsThrove.Add(gameObject);
+        }
+        localPlayerInventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
+        localPlayer.transform.parent = transform;
+        localPlayer.transform.position = transform.position + playerSleepOffset;
     }
 
     public void SendReadyToSkip(string id)
     {
-        if (TaskManagerRef.gameTimer < skipTime)
+        if (taskManager.gameTimer < skipTime)
         {
-            Cmd.CmdReadyToSkipWithoutSprite(id, skipTime);
-            if (currentZharaDebaf != null)
-                currentZharaDebaf.Off();
-            if (currentChillBaf != null)
-                currentChillBaf.Off();
-            currentSleepBaf = DebafsControllerRef.AddDebaf(3, false);//кидаем сон
+            localCommands.CmdReadyToSkipWithoutSprite(id, skipTime);
         }
     }
 }

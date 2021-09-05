@@ -1,16 +1,25 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http.Headers;
 using UnityEngine;
 
 public class DebafsController : MonoBehaviourExtension
 {
+    public static DebafsController instance;
     [SerializeField] GameObject[] debafsPrefabs;
-    [SerializeField] TaskManager manager;
     public DescriptionController descController;
     public List<Debaf> currentDebafs = new List<Debaf>();
     int showCount = 0;
     readonly float offset = 50;
+
+    private DebafsController()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     public Debaf AddDebaf(int num, bool ce = true)
     {
@@ -33,6 +42,12 @@ public class DebafsController : MonoBehaviourExtension
         dComponent.On(localPlayer, -1, this, ce);
         return dComponent;
     }
+    
+    public void RemoveDebaf(int debafId)
+    {
+        var removingDebaf = currentDebafs.Find(debaf => debaf.num == debafId);
+        RemoveDebaf(removingDebaf);
+    }
 
     public void RemoveDebaf(Debaf removingDebaf)
     {
@@ -46,6 +61,7 @@ public class DebafsController : MonoBehaviourExtension
         }
         currentDebafs.RemoveAt(i);
     }
+    
 }
 
 public enum BafType

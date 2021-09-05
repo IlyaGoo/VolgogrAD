@@ -4,13 +4,21 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class DescriptionController : MonoBehaviour
+public class DescriptionController : MonoBehaviourExtension
 {
+    public static DescriptionController instance;
     public GameObject DescriptionRef;
     static float delta;
     static Vector3 offset;
     public GameObject cuurentHoverDescription;
-    public GameObject Player;
+
+    private DescriptionController()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
 
     void Update()
     {
@@ -28,7 +36,7 @@ public class DescriptionController : MonoBehaviour
     public void ShowDescription(HoverCell hov)
     {
         SetDescription(hov.gameObject, hov.CellRef.Content.Title, hov.CellRef.Content.Description, hov.size);
-        if (!hov.CellRef.CanInteract(Player))
+        if (!hov.CellRef.CanInteract(localPlayer))
         {
             var OwnerRef = DescriptionRef.transform.Find("Owner");
             OwnerRef.gameObject.SetActive(true);
@@ -58,7 +66,7 @@ public class DescriptionController : MonoBehaviour
 
     public void ShowDescription(Debaf hov)
     {
-        SetDescription(hov.gameObject, hov.nm, hov.description, Debaf.size);
+        SetDescription(hov.gameObject, hov.debafName, hov.description, Debaf.size);
     }
 
     public void DestroyRef(GameObject hov, bool force = false)

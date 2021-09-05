@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CarMoving : MonoBehaviour {
+public class CarMoving : MonoBehaviourExtension {
 
     public float speed;                //Floating point variable to store the player's movement speed.
+    const float angleBetweenStates = 22.5f;
+    const float halfAngleBetweenStates = angleBetweenStates / 2;
 
     private Rigidbody2D rb2d;        //Store a reference to the Rigidbody2D component required to use 2D Physics.
     [SerializeField] AudioSource motor;
@@ -17,7 +19,7 @@ public class CarMoving : MonoBehaviour {
     Animator _anim;
     public Animator _animWheels;
     [SerializeField] GameObject triggerObject;
-    public Vector3 passagersOffset = new Vector3(0, 0, 0.1f);
+    public static Vector3 passagersOffset = new Vector3(0, 0, 0.1f);
 
     public float moveHorizontal;
     public float moveVertical;
@@ -34,7 +36,6 @@ public class CarMoving : MonoBehaviour {
     [SerializeField] GameObject LightParent;
     public bool LightsState;
     public bool ParticlesState;
-    public Commands playerCommands;
     public bool stopLightActive;
     bool inited = false;
 
@@ -139,9 +140,9 @@ public class CarMoving : MonoBehaviour {
         //SetStopLights(moveVertical == 0 && magn > 0.1f);
         bool newStopState = moveVertical == 0 && magn > 0.1f;
         if (newStopState != stopLightActive)
-            playerCommands.CmdSetStopLights(gameObject, moveVertical == 0 && magn > 0.1f);
+            localCommands.CmdSetStopLights(gameObject, newStopState);
 
-        CurrentDirection = Rotate(CurrentDirection, dif * moveHorizontal * 20 * -moveVertical);
+        CurrentDirection = Rotate(CurrentDirection, dif * moveHorizontal * 20 * -moveVertical * Mathf.Deg2Rad);
 
         foreach (var pas in passagers)
         {
@@ -151,48 +152,14 @@ public class CarMoving : MonoBehaviour {
         var angle = Vector3.Angle(Vector2.up, CurrentDirection);
 
         var previousCarState = currentState;
-        
+
         if (CurrentDirection.x <= 0)
         {
-            if (angle < 11.25f)
-                currentState = 1;
-            else if (angle < 33.75f)
-                currentState = 2;
-            else if (angle < 56.25f)
-                currentState = 3;
-            else if (angle < 78.75f)
-                currentState = 4;
-            else if (angle < 101.25f)
-                currentState = 5;
-            else if (angle < 123.75f)
-                currentState = 6;
-            else if (angle < 146.25f)
-                currentState = 7;
-            else if (angle < 168.75f)
-                currentState = 8;
-            else
-                currentState = 9;
+            currentState = 1 + (int)((angle + halfAngleBetweenStates) / angleBetweenStates);
         }
         else
         {
-            if (angle < 11.25f)
-                currentState = 1;
-            else if (angle < 33.75f)
-                currentState = 16;
-            else if (angle < 56.25f)
-                currentState = 15;
-            else if (angle < 78.75f)
-                currentState = 14;
-            else if (angle < 101.25f)
-                currentState = 13;
-            else if (angle < 123.75f)
-                currentState = 12;
-            else if (angle < 146.25f)
-                currentState = 11;
-            else if (angle < 168.75f)
-                currentState = 10;
-            else
-                currentState = 9;
+            currentState = angle < halfAngleBetweenStates ? 1 : 16 - (int)((angle - halfAngleBetweenStates) / angleBetweenStates);
         }
 
         rb2d.AddForce(CurrentDirection * speed * moveVertical);
@@ -205,10 +172,9 @@ public class CarMoving : MonoBehaviour {
             _anim.SetInteger("State", currentState);
             _animWheels.SetInteger("State", currentState);
             SetTriggerAngle();
-            playerCommands.CmdSetCarState(gameObject, currentState, _animWheels.speed);
-            playerCommands.CmdSetCarCurrentDirection(gameObject, CurrentDirection.x, CurrentDirection.y);
+            localCommands.CmdSetCarState(gameObject, currentState, _animWheels.speed);
+            localCommands.CmdSetCarCurrentDirection(gameObject, CurrentDirection.x, CurrentDirection.y);
         }
-
     }
 
     public void SetState(int newState, float wheelSpeed)
@@ -225,13 +191,13 @@ public class CarMoving : MonoBehaviour {
 
     void SetTriggerAngle()
     {
-        triggerObject.transform.eulerAngles = new Vector3(0, 0, 22.5f * (currentState - 1));
+        triggerObject.transform.eulerAngles = new Vector3(0, 0, angleBetweenStates * (currentState - 1));
     }
 
-    public static Vector2 Rotate(Vector2 v, float degrees)
+    public static Vector2 Rotate(Vector2 v, float rad)
     {
-        float sin = Mathf.Sin(degrees * Mathf.Deg2Rad);
-        float cos = Mathf.Cos(degrees * Mathf.Deg2Rad);
+        float sin = Mathf.Sin(rad);
+        float cos = Mathf.Cos(rad);
 
         float tx = v.x;
         float ty = v.y;

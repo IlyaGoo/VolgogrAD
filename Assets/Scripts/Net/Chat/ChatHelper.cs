@@ -6,9 +6,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class ChatHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IListener, INumListener, IScrollListener
+public class ChatHelper : MonoBehaviourExtension, IPointerEnterHandler, IPointerExitHandler, IListener, INumListener, IScrollListener
 {
-
+    public static ChatHelper instance;
     public TMP_InputField InputF;
     public TextMeshProUGUI TextBlock;
     [SerializeField] GameObject ChatObject;
@@ -26,38 +26,43 @@ public class ChatHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     List<string> previousMassages = new List<string>(massageMemory);
     string currentMassage = "";
     int currentMassagesPosition = -1;
-
-    public ChatPlayerHelper _currentplayer;
-    public ListenersManager manager;
     bool isActive;
 
     public string Nickname = "";
 
+    private ChatHelper()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
     public void StuckPlayer()
     {
         inputFIsSelected = true;
-        _currentplayer.GetComponent<Moving>().stacked = true;
-        if (!manager.SpaceListeners.Contains(this))
+        localChatPlayerHelper.GetComponent<Moving>().stacked = true;
+        if (!localListenersManager.SpaceListeners.Contains(this))
         {
-            manager.SpaceListeners.Add(this);
-            manager.NumbersListeners.Add(this);
-            manager.FListeners.Add(this);
-            manager.ScrollListeners.Add(this);
-            manager.AlphaListeners.Add(this);
+            localListenersManager.SpaceListeners.Add(this);
+            localListenersManager.NumbersListeners.Add(this);
+            localListenersManager.FListeners.Add(this);
+            localListenersManager.ScrollListeners.Add(this);
+            localListenersManager.AlphaListeners.Add(this);
         }
     }
 
     public void UnStuckPlayer()
     {
         inputFIsSelected = false;
-        _currentplayer.GetComponent<Moving>().stacked = false;
-        if (manager.SpaceListeners.Contains(this))
+        localChatPlayerHelper.GetComponent<Moving>().stacked = false;
+        if (localListenersManager.SpaceListeners.Contains(this))
         {
-            manager.SpaceListeners.Remove(this);
-            manager.NumbersListeners.Remove(this);
-            manager.FListeners.Remove(this);
-            manager.ScrollListeners.Remove(this);
-            manager.AlphaListeners.Remove(this);
+            localListenersManager.SpaceListeners.Remove(this);
+            localListenersManager.NumbersListeners.Remove(this);
+            localListenersManager.FListeners.Remove(this);
+            localListenersManager.ScrollListeners.Remove(this);
+            localListenersManager.AlphaListeners.Remove(this);
         }
         if (!mouseOn)
         {
@@ -102,7 +107,7 @@ public class ChatHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         if (InputF.text == "") return;
         AddMassage(InputF.text);
         currentMassagesPosition = -1;
-        _currentplayer.Send(Nickname, InputF.text);
+        localChatPlayerHelper.Send(Nickname, InputF.text);
         InputF.text = "";
     }
 
@@ -121,7 +126,7 @@ public class ChatHelper : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     {
         currentTimer = delay;
         TextBlock.gameObject.SetActive(true);
-        TextBlock.GetComponent<TextMeshProUGUI>().SetText(message + System.Environment.NewLine + TextBlock.GetComponent<TextMeshProUGUI>().GetParsedText());
+        TextBlock.SetText(message + System.Environment.NewLine + TextBlock.GetParsedText());//todo эта хуйня обновляется раз в кадр
     }
 
     void Update()

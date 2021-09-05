@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, 
+public class HoverCell : MonoBehaviourExtension, IPointerEnterHandler, IPointerExitHandler, 
     IBeginDragHandler, IDragHandler, IDropHandler, IPointerClickHandler {
 
     [HideInInspector]
@@ -37,13 +37,11 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         invObj.choosenCell = state ? this : null;
         GetComponent<Image>().sprite = state ? activeSprite : deactiveSprite;
 
-        var mov = invObj.Player.GetComponent<Moving>();
-
-        if (!freeze) { 
+        if (!freeze) {
             if (!state)
             {
-                mov.inHandsNames.Clear();
-                mov.plNet.cmd.CmdDestroyObjectInHands(mov.gameObject);
+                localMoving.inHandsNames.Clear();
+                localCommands.CmdDestroyObjectInHands(localPlayer);
             }
             NeedDoSomething(); 
         }
@@ -53,18 +51,17 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         if (isActive)
         {
-            var mov = invObj.Player.GetComponent<Moving>();
             if (CellRef.Content != null)
             {
-                if (!mov.HasInHands(CellRef.Content.inHandsPrefab))
+                if (!localMoving.HasInHands(CellRef.Content.inHandsPrefab))
                 {
-                    DoSomething(mov);
+                    DoSomething();
                 }
-                SpawnDopObjects(mov);
+                SpawnDopObjects();
             }
             else
             {
-                DoSomething(mov);
+                DoSomething();
             }
         }
     }
@@ -73,8 +70,8 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         if (invObj != null && !invObj.freeze && CellRef.Content != null && CellRef.Content.canBeInHandsAlso != null && CellRef.Content.canBeInHandsAlso.Contains(previousName) && invObj.HasIn(previousName) == null)
         {
-            invObj.mov.plNet.cmd.CmdDestroyObjectInHands(invObj.mov.gameObject);
-            invObj.mov.inHandsNames.Clear();
+            localCommands.CmdDestroyObjectInHands(localPlayer);
+            localMoving.inHandsNames.Clear();
             invObj.choosenCell.NeedDoSomething();
         }
     }
@@ -82,10 +79,10 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     public void ObjectAddedToPanel(string obName)
     {
         if (invObj != null && !invObj.freeze && CellRef.Content != null && CellRef.Content.canBeInHandsAlso != null && CellRef.Content.canBeInHandsAlso.Contains(obName))
-            SpawnDopObjects(invObj.Player.GetComponent<Moving>());
+            SpawnDopObjects();
     }
 
-    public void SpawnDopObjects(Moving mov)
+    public void SpawnDopObjects()
     {
         if (CellRef.Content != null && CellRef.Content.canBeInHandsAlso != null)
         {
@@ -95,26 +92,26 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
                 ItemData itData;
                 if ((itData = invObj.HasIn(SecondItem)) != null)
                 {
-                    if (!mov.HasInHands(itData.inHandsPrefab))
+                    if (!localMoving.HasInHands(itData.inHandsPrefab))
                     {
                         spawned = true;
-                        mov.plNet.cmd.CmdSpawnObjectInHands(mov.gameObject, itData.inHandsPrefab);
+                        localCommands.CmdSpawnObjectInHands(localPlayer, itData.inHandsPrefab);
                     }
                 }
             }
 
             if (spawned)
-                mov.plNet.cmd.CmdChangeInHandsPosition(mov.gameObject, CellRef.Content.inHandsPrefab[1], true);
+                localCommands.CmdChangeInHandsPosition(localPlayer, CellRef.Content.inHandsPrefab[1], true);
         }
     }
 
-    void DoSomething(Moving mov)
+    void DoSomething()
     {
-        mov.plNet.cmd.CmdDestroyObjectInHands(mov.gameObject); //Убираем из рук все вещи
+        localCommands.CmdDestroyObjectInHands(localPlayer); //Убираем из рук все вещи
 
         if (CellRef.Content != null && CellRef.Content.inHandsPrefab.Length != 0)
         {
-            mov.plNet.cmd.CmdSpawnObjectInHands(mov.gameObject, CellRef.Content.inHandsPrefab);
+            localCommands.CmdSpawnObjectInHands(localPlayer, CellRef.Content.inHandsPrefab);
         }
     }
 
@@ -123,43 +120,42 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
         show = true;
         if (CellRef.Content != null) {
             ShowDescription();
-            if (CellRef.CanInteract(invObj.Player))
-                invObj.Player.transform.Find("FListener").GetComponent<FListener>().currentHover = this;
+            if (CellRef.CanInteract(localPlayer))
+                localFListener.currentHover = this;
         }
     }
     
     public void ShowDescription()
     {
         if (!show || invObj.inventoryType == InventoryType.EmptyInventory || CellRef.Content == null) return;
-        invObj.descController.ShowDescription(this);
+        descriptionController.ShowDescription(this);
     }
 
     // вызывается, когда когда убираем курсор с ячейки
     public void OnPointerExit(PointerEventData eventData) {
         if (show)
         {
-            invObj.descController.DestroyRef(gameObject);
+            descriptionController.DestroyRef(gameObject);
             show = false;
         }
-        var l = invObj.Player.transform.Find("FListener").GetComponent<FListener>();
-        if (l.currentHover = this)
-            l.currentHover = null;
+        if (localFListener.currentHover = this)
+            localFListener.currentHover = null;
     }
 
     // вызывается, когда кликаем на ячейку и начинам тащить
     public void OnBeginDrag(PointerEventData eventData) {
-        if (CellRef.CanInteract(invObj.Player))
+        if (CellRef.CanInteract(localPlayer))
             IfClickOn();
     }
 
     // вызывается, когда отпускаем перетаскивание и находимся над этой ячейкой
     public void OnDrop(PointerEventData eventData)
     {
-        if (!CellRef.CanInteract(invObj.Player)) return;
-        var mouseCell = invObj.Player.GetComponent<InventoryController>().inventories[2].cells[0, 0];
+        if (!CellRef.CanInteract(localPlayer)) return;
+        var mouseCell = localPlayerInventoryController.inventories[2].cells[0, 0];
         if (mouseCell.ItemName != "")
         {
-            invObj.Player.GetComponent<Commands>().CmdReplaceItem(invObj.Player, invObj.InventoryCintrollerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);
+            localCommands.CmdReplaceItem(localPlayer, invObj.InventoryControllerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);
         }
 
         return;
@@ -168,11 +164,11 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     // вызывается, когда кликаем на эту ячейку
     public void OnPointerClick(PointerEventData eventData) {
         // если кликнули правой кнопкой
-        if (!CellRef.CanInteract(invObj.Player)) return;
+        if (!CellRef.CanInteract(localPlayer)) return;
         if (eventData.button == PointerEventData.InputButton.Right) {
             if (CellRef.Content == null) return;
-            if (CellRef.Content.Type == Category.Potion) {
-                invObj.Player.GetComponent<Commands>().CmdUseItem(invObj.InventoryCintrollerObject, invObj.Number, cellRef.ItemName, y, x, 1);
+            if (CellRef.Content.Type == ItemCategory.Potion) {
+                localCommands.CmdUseItem(invObj.InventoryControllerObject, invObj.Number, cellRef.ItemName, y, x, 1);
             }
         }
         else if (eventData.button == PointerEventData.InputButton.Left)
@@ -184,15 +180,15 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     void IfClickOn()
     {
 
-        var mouseCell = invObj.Player.GetComponent<InventoryController>().inventories[2].cells[0, 0];
+        var mouseCell = localPlayerInventoryController.inventories[2].cells[0, 0];
         if (mouseCell.ItemName != "")
         {
-            invObj.Player.GetComponent<Commands>().CmdReplaceItem(invObj.Player, invObj.InventoryCintrollerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);
+            localCommands.CmdReplaceItem(localPlayer, invObj.InventoryControllerObject, 2, invObj.Number, mouseCell.ItemName, 0, 0, mouseCell.Amount, y, x);
         }
         else if(CellRef.ItemName != "")
         {
             var count = (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) ? cellRef.Amount / 2 + cellRef.Amount % 2 : cellRef.Amount;
-            invObj.Player.GetComponent<Commands>().CmdReplaceItem(invObj.InventoryCintrollerObject, invObj.Player, invObj.Number, 2, CellRef.Content.PrefabName, y, x, count, 0, 0);
+            localCommands.CmdReplaceItem(invObj.InventoryControllerObject, localPlayer, invObj.Number, 2, CellRef.Content.PrefabName, y, x, count, 0, 0);
         }
     }
 
@@ -200,13 +196,13 @@ public class HoverCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandle
     {
         transform.Find("Image").gameObject.SetActive(false);
         transform.Find("Amount").gameObject.SetActive(false);
-        invObj.descController.DestroyRef(gameObject);
+        descriptionController.DestroyRef(gameObject);
     }
 
     void OnDestroy()
     {
         if (show)
-            invObj.descController.DestroyRef(gameObject);
+            descriptionController.DestroyRef(gameObject);
     }
 
     public void OnDrag(PointerEventData eventData)//без этого не работает перетаскивание предметов

@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class WholeScript : MonoBehaviourExtension, IScaleDoing
 {
+    static Vector3 findObjectOffset = new Vector3(0.15f, 0.15f, 0);
+    static Vector3 raycastOffset = new Vector3(0.1f, 0.1f, 0);
+
+    static Vector3 part0Offset = new Vector3(0.25f, 0.75f, 0);
+    static Vector3 part1Offset = new Vector3(0.75f, 0.75f, 0);
+    static Vector3 part2Offset = new Vector3(0.25f, 0.25f, 0);
+    static Vector3 part3Offset = new Vector3(0.75f, 0.25f, 0);
 
     private GameObject block;
     List<DetectingItem>[] items = new List<DetectingItem>[3] {new List<DetectingItem>(), new List<DetectingItem>(), new List<DetectingItem>() };
@@ -12,14 +19,11 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
     [SerializeField] Sprite[] whole2Sprites;
     [SerializeField] Sprite[] whole3Sprites;
     [SerializeField] BoxCollider2D carCollider;
-
-    List<WholeScript> nearWholes = new List<WholeScript>();
+    readonly List<WholeScript> nearWholes = new List<WholeScript>();
 
     [SerializeField] GameObject miniDirt;
-    GameObject[] parts = new GameObject[4];
-
-    bool[,] squares = new bool[3,3];
-
+    readonly GameObject[] parts = new GameObject[4];
+    readonly bool[,] squares = new bool[3,3];
 
     public GameObject Block
     {
@@ -27,7 +31,6 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
         {
             return block;
         }
-
         set
         {
             block = value;
@@ -41,11 +44,11 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
 
     public void GetParent(Vector3 pos)//Необходимо кидать позицию, потому что иногда вызываем при инициализации и спавн ямы быстрее чем первичное перемещение самой ямы
     {
-        RaycastHit2D[] hits = Physics2D.RaycastAll(pos + new Vector3(0.1f, 0.1f, 0), Vector2.zero);
+        RaycastHit2D[] hits = Physics2D.RaycastAll(pos + raycastOffset, Vector2.zero);
 
         foreach (var hit in hits)
         {
-            if (hit.collider != null && hit.collider.gameObject.tag == "StandartBlock")
+            if (hit.collider != null && hit.collider.gameObject.CompareTag("StandartBlock"))
             {
                 transform.parent = hit.transform;
                 transform.position = pos;
@@ -57,16 +60,16 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
 
     public void SetData(string newData)
     {
-        var data = newData.Split('|');
+        //var data = newData.Split('|');
         SpawnObjects();
     }
 
     void SpawnParts()
     {
-        parts[0] = Instantiate(miniDirt, gameObject.transform.position + new Vector3(0,0.5f,0) + new Vector3(0.25f, 0.25f,0), Quaternion.identity);
-        parts[1] = Instantiate(miniDirt, gameObject.transform.position + new Vector3(0.5f, 0.5f, 0) + new Vector3(0.25f, 0.25f, 0), Quaternion.identity);
-        parts[3] = Instantiate(miniDirt, gameObject.transform.position + new Vector3(0.25f, 0.25f, 0), Quaternion.identity);
-        parts[2] = Instantiate(miniDirt, gameObject.transform.position + new Vector3(0.5f, 0, 0) + new Vector3(0.25f, 0.25f, 0), Quaternion.identity);
+        parts[0] = Instantiate(miniDirt, transform.position + part0Offset, Quaternion.identity);
+        parts[1] = Instantiate(miniDirt, transform.position + part1Offset, Quaternion.identity);
+        parts[3] = Instantiate(miniDirt, transform.position + part2Offset, Quaternion.identity);
+        parts[2] = Instantiate(miniDirt, transform.position + part3Offset, Quaternion.identity);
         foreach(var p in parts)
             p.transform.parent = gameObject.transform;
     }
@@ -83,7 +86,6 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
 
     void SetPart(GameObject part, bool p1, bool p2, bool p3, int turn)
     {
-        print(-1);
         int spriteNum;
         if (p1)
         {
@@ -141,7 +143,7 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
             for (var y = 0; y < 3; y++)
             {
                 if (y == x && x == 1) continue;
-                var w = IsWhole(transform.position + new Vector3(0.2f, 0.2f, 0) + new Vector3(x - 1, y - 1, 0));
+                var w = IsWhole(transform.position + new Vector3(x - 0.8f, y - 0.8f, 0));
                 squares[x, y] = w != null && w.currentLevel != 0;
                 //print(squares[x, y]);
                 if (squares[x, y])
@@ -156,7 +158,7 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
 
         foreach (var hit in hits)
         {
-            if (hit.collider != null && hit.collider.gameObject.tag == "StandartBlock")
+            if (hit.collider != null && hit.collider.gameObject.CompareTag("StandartBlock"))
             {
                 var sc = hit.transform.GetComponent<BlockController>();
                 if (sc == null) return null;
@@ -170,16 +172,14 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
     public void GiveItems()
     {
         if (IsEnd()) return;
-        var pl = GameObject.Find("LocalPlayer");
-        var inv = pl.GetComponent<InventoryController>();
         foreach (var item in items[currentLevel])
         {
-            if (inv.CanPutItem(item.itemData.CopyItem())) 
+            if (localPlayerInventoryController.CanPutItem(item.itemData.CopyItem())) 
             {
-                pl.GetComponent<Commands>().CmdTakeDetectingItem(item.gameObject);
+                localCommands.CmdTakeDetectingItem(item.gameObject);
             }
             else
-                pl.GetComponent<Commands>().CmdThroveDetectingItem(item.gameObject, pl.transform.position, Quaternion.identity);
+                localCommands.CmdThroveDetectingItem(item.gameObject, localPlayer.transform.position, Quaternion.identity);
         }
     }
 
@@ -237,9 +237,9 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
         for (int i = 0; i < count; i++)
         {
             var depth = Random.Range(1,4);
-            var ob = taskManager.GetComponent<ObjectsScript>().GetRandomObject();
-            Vector3 pos = gameObject.transform.position + new Vector3(0.15f, 0.15f, 0) + new Vector3(Random.Range(0, 0.7f), Random.Range(0, 0.7f), 0.6f);
-            GameObject.Find("LocalPlayer").GetComponent<Commands>().CmdSpawnFindObject(ob, pos, new Quaternion(0,0,Random.Range(-1f,1f), 1), gameObject, depth);
+            var ob = objectsScript.GetRandomObject();
+            Vector3 pos = transform.position + findObjectOffset + new Vector3(Random.Range(0, 0.7f), Random.Range(0, 0.7f), 0.6f);
+            localCommands.CmdSpawnFindObject(ob, pos, new Quaternion(0, 0, Random.Range(-1f, 1f), 1), gameObject, depth);
         }
     }
 
@@ -250,10 +250,9 @@ public class WholeScript : MonoBehaviourExtension, IScaleDoing
 
     public void ScaleDo()
     {
-        var player = GameObject.Find("LocalPlayer");
         GiveItems();
-        player.GetComponent<PlayerNet>().CmdDig(gameObject);
-        player.GetComponent<HealthBar>().AddEnergy(-5);
+        localPlayerNet.CmdDig(gameObject);
+        localHealthBar.AddEnergy(-5);
     }
 
     enum Side

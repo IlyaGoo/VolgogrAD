@@ -6,15 +6,15 @@ public class InventoryAreaDoing : TriggerAreaDoing
 {
     [SerializeField] Inventory inv;
 
-    public override bool Do(GameObject player)
+    public override bool Do()
     {
 /*        var cont = player.GetComponent<PlayerNet>();
         cont.invPanelLeft.SetActive(true);
         cont.invPanelRight.SetActive(true);*/
 
-        player.GetComponent<Inventory>().Open(player);
-        inv.Open(player);
-        TurnLabel(NeedShowLabel());
+        localPlayer.GetComponent<Inventory>().Open();
+        inv.Open();
+        RefreshStateLabel();
         return true;
     }
 
@@ -25,15 +25,15 @@ public class InventoryAreaDoing : TriggerAreaDoing
 
     public override void ExitFrom(GameObject player)
     {
-        WasdDoing(player);
+        WasdDoing();
     }
 
-    public override void WasdDoing(GameObject player)
+    public override void WasdDoing()
     {
         if (inv.IsOpen)
         {
-            player.GetComponent<Inventory>().Close();
-            TurnLabel(NeedShowLabel());
+            localPlayer.GetComponent<Inventory>().Close();
+            RefreshStateLabel();
         }
     }
 }

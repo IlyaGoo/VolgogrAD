@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using Mirror;
 using System;
+using System.Runtime.InteropServices;
 
 public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
 {
@@ -24,7 +25,6 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     public Skiper _skiper;
     public InventoryController inventoryController;
     [SerializeField] GameObject FListenerObject;
-    public DescriptionController descriptionController;
 
     public void ShowLabel(GameObject player) { }
 
@@ -41,12 +41,12 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
         {
             if (_panelPr != null)
             {
-                GetComponent<Moving>().dontBeReflect.Remove(_panelPr);
+                _moving.dontBeReflect.Remove(_panelPr);
                 Destroy(_panelPr);
             }
             _panelPr = value;
             if (_panelPr != null)
-                GetComponent<Moving>().dontBeReflect.Add(_panelPr);
+                _moving.dontBeReflect.Add(_panelPr);
         }
     }
     public Transform TranformForPanel { get => transform; set => throw new System.NotImplementedException(); }
@@ -70,8 +70,6 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
 
     [SerializeField] private GameObject inventoryDataPrefab = null;
     public GameObject inventoryData = null;
-
-    private GameObject canvas = null;
 
     Vector3 WholeWector1 = new Vector3(0.2f, 0.2f, 0);
     Vector3 WholeWector2 = new Vector3(0, -0.2f, 0);
@@ -114,23 +112,23 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     public void AddDoing(string id, TriggerAreaDoing doing)
     {
         if (!isServer) return;
-        taskManager.GetPlayerData(id).AddDoing(doing);
+        EntitysController.instance.GetPlayerData(id).AddDoing(doing);
     }
 
     public void RemoveDoing(string id, TriggerAreaDoing doing)
     {
         if (!isServer) return;
-        taskManager.GetPlayerData(id).RemoveDoing(doing);
+        EntitysController.instance.GetPlayerData(id).RemoveDoing(doing);
     }
 
     [Command]
     public void CmdUnstuck()
     {
-        RpcUnstuck();
+        RpcStuck();
     }
 
     [ClientRpc]
-    public void RpcUnstuck()
+    public void RpcStuck()
     {
         _moving.SetAllRenders(false);
         _moving.stacked = true;
@@ -285,7 +283,7 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     private void CmdSpawnParts(int x, int y, int z)
     {
         RpcSpawnParts(x, y, z);
-        taskManager.PlayersDatas[GetComponent<NetworkIdentity>().netId.ToString()].SetBody(x, y, z);
+        EntitysController.instance.GetPlayerData(GetComponent<NetworkIdentity>().netId.ToString()).SetBody(x, y, z);
     }
 
     [Command]
@@ -309,6 +307,11 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     private void RpcSpawnParts(int newHeadNum, int newBodyNum, int newLagsNum)
     {
         _moving.SpawnParts(newHeadNum, newBodyNum, newLagsNum);
+    }
+    
+    public void SendPlayerData(PlayerInfo playerInfo)
+    {
+        TargetSendPlayerData(connectionToClient, playerInfo.identity, playerInfo.nickname, playerInfo.entityObject);
     }
 
     public void SendSpawnParts(GameObject obj)
@@ -336,29 +339,47 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     }
 
     [Command]
-    void CmdSendPlayerData(string identity, string name, GameObject playerObject)
+    void CmdSendPlayerData(string identity, string playerNickname, GameObject playerObject)
     {
-        taskManager.PlayerSendedData(identity, name, playerObject);
+        RpcSendPlayerData(identity, playerNickname, playerObject);
+    }
+    
+    [ClientRpc]
+    private void RpcSendPlayerData(string identity, string playerNickname, GameObject playerObject)
+    {
+        EntitysController.instance.CreatePlayerData(identity, playerNickname, playerObject);
+        id = identity;
+    }
+    
+    [TargetRpc]
+    void TargetSendPlayerData(NetworkConnection target, string identity, string playerNickname, GameObject playerObject)
+    {
+        EntitysController.instance.CreatePlayerData(identity, playerNickname, playerObject);
         id = identity;
     }
 
     void SetGameSystem()
     {
         GameSystem.instance.localPlayer = gameObject;
-        GameSystem.instance.playerNet = this;
-        GameSystem.instance.commands = cmd;
-        GameSystem.instance.chatPlayerHelper = GetComponent<ChatPlayerHelper>();
-        GameSystem.instance.playerInventoryController = GetComponent<InventoryController>();
+        GameSystem.instance.localPlayerNet = this;
+        GameSystem.instance.localCommands = cmd;
+        GameSystem.instance.localChatPlayerHelper = GetComponent<ChatPlayerHelper>();
+        GameSystem.instance.localPlayerInventoryController = GetComponent<InventoryController>();
         GameSystem.instance.localPlayerId = GetComponent<NetworkIdentity>().netId.ToString();
+        GameSystem.instance.localMoving = _moving;
+        GameSystem.instance.localHeadMessagesManager = GetComponent<HeadMessagesManager>();
+        GameSystem.instance.localListenersManager = listenersManager;
+        GameSystem.instance.localHealthBar = healthBar;
+        GameSystem.instance.localTaker = _taker;
+        GameSystem.instance.localFListener = FListenerObject.GetComponent<FListener>();
     }
 
     public override void OnStartLocalPlayer()
     {
         SetGameSystem();
 
-        taskManager._taker = _taker;
-        foreach (var helper in FindObjectsOfType<ChatPlayerHelper>())
-            helper.Init();//Инициализируем ChatPlayerHelper
+/*        foreach (var helper in FindObjectsOfType<ChatPlayerHelper>())
+            helper.Init();//Инициализируем ChatPlayerHelper*/
         taskManager.Init();//Инициализируем TaskManager
 
 
@@ -374,7 +395,7 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
             legsNum = int.Parse(bodyNums[2]);
 
         }*/
-        taskManager.chatHelper.Nickname = nickname = playerMetaData.nickname;
+        chatHelper.Nickname = nickname = playerMetaData.nickname;
         id = localPlayerId;
         CmdSendPlayerData(localPlayerId, nickname, gameObject);
         _moving.headNum = playerMetaData.headNum;
@@ -392,21 +413,17 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
         _camera.SetActive(true);
         //GetComponent<KeyController>().enabled = true;
         inventoryController.EnableInventories();
-        GetComponent<HealthBar>().enabled = true;
+        healthBar.enabled = true;
         GetComponent<AltListener>().enabled = true;
 
         taskManager.optionsScript.Init();
 
-        canvas = taskManager.canvas;
         invPanelLeft = taskManager.invPanelLeft;
         invPanelRight = taskManager.invPanelRight;
 
-        descriptionController = canvas.GetComponent<DescriptionController>();
-        descriptionController.Player = gameObject;
-
         //GetComponent<KeyController>().Init();
-        inventoryController.inventories[0].Open(gameObject, false);
-        inventoryController.inventories[2].Open(gameObject, false);
+        inventoryController.inventories[0].Open(false);
+        inventoryController.inventories[2].Open(false);
 
 /*        foreach (var inv in inventoryController.inventories)
         {
@@ -416,7 +433,6 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
         listenersManager.enabled = true;
         listenersManager.TabListeners.Add(GetComponent<Inventory>());
         
-        var callMenu = canvas.GetComponent<CallMenu>();
         listenersManager.EscListeners.Add(callMenu);
         //GetComponentsInChildren<Inventory>().Init();
 
@@ -426,15 +442,15 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
         FListenerObject.SetActive(true);
 
         callMenu.enabled = true;
-        callMenu.Player = gameObject;
         //Invoke("Request", 0.1f);
         if (!isServer)
-            GetComponent<Connector>().RequestAll();
-        taskManager._mobManager.Init(gameObject, this);
+            GetComponent<Connector>().CmdRequestAll();
+        mobsManager.Init();
         _taker.Init();
         GetComponentInChildren<CircleTrigger>().isController = true;
-        taskManager.menuSctipt.manager = playerMetaData.netWorkManager;
-        taskManager.menuSctipt.manager.SetLoading(false);
+        callMenu.manager = playerMetaData.netWorkManager;
+        callMenu.manager.SetLoading(false);
+        GameSystem.instance.allInited = true;
     }
 
     void Request()
@@ -443,7 +459,6 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
         {
             if (inv.inventoryType == InventoryType.MainInventory || inv.inventoryType == InventoryType.Panel)
             {
-                inv.Player = gameObject;
                 inv.RequesData();
             }
         }
@@ -453,8 +468,10 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     {
         if (!isLocalPlayer && taskManager.isServer)
         {
-            taskManager.GetPlayerData(id).EndAllDoins(id);
-            taskManager.PlayerDisConnectedNickname(id);//Здесь же удаляем из datas
+            var playerInfo = EntitysController.instance.GetPlayerData(id);
+            playerInfo.IsDisconnected = true;
+            playerInfo.EndAllDoins(id);
+            EntitysController.instance.PlayerDisConnectedNickname(id);//Здесь же удаляем из datas
             Destroy(inventoryData);
         }
     }

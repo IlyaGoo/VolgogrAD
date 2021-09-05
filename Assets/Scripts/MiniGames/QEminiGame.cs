@@ -29,10 +29,8 @@ public class QEminiGame : StandartMinigame
         return usingKeyCodes;
     }
 
-    void FixedUpdate()
+    protected override void AddOnGUI()
     {
-        TimerTick();
-
         if (position == 0 && Input.GetKeyDown(KeyCode.Q) || position == 1 && Input.GetKeyDown(KeyCode.E))
         {
             scale.transform.localScale = new Vector3(Mathf.Max(0, scale.transform.localScale.x + 0.1f), scale.transform.localScale.y, scale.transform.localScale.z);
@@ -56,6 +54,11 @@ public class QEminiGame : StandartMinigame
                 Finish();
             }
         }
+    }
+
+    void FixedUpdate()
+    {
+        TimerTick();
         scale.transform.localScale = new Vector3(Mathf.Max(0, scale.transform.localScale.x - Time.fixedDeltaTime / difficulty), scale.transform.localScale.y, scale.transform.localScale.z);
         negativePos += Time.fixedDeltaTime / (difficulty * 2);
         negariveScale.transform.position = new Vector3(scale.transform.position.x + 1.4f * negativePos, negariveScale.transform.position.y, negariveScale.transform.position.z);
@@ -64,7 +67,7 @@ public class QEminiGame : StandartMinigame
         {
             scale.transform.localScale = vector011;
             negativePos = 0;
-            bar.AddEnergy(-5);
+            localHealthBar.AddEnergy(-5);
             CheckEndEnergy();
         }
     }

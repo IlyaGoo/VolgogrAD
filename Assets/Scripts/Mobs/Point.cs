@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using UnityEngine;
 
 public class Point : MonoBehaviour {
@@ -13,8 +14,28 @@ public class Point : MonoBehaviour {
     public float EdgesWeightSum = float.MaxValue;
     public Point PreviousVertex = null;
 
+    public bool botsCanStay;
+
     public void AddEdge(GraphEdge newEdge)
     {
         Edges.Add(newEdge);
+    }
+
+    public void AddStayMob(MobController mob)
+    {
+        var dialogue = GetComponent<MobDialogue>();
+        if (dialogue == null)
+            dialogue = gameObject.AddComponent<MobDialogue>();
+
+        dialogue.AddStayMob(mob);
+    }
+
+    public void RemoveStayMob(MobController mob)
+    {
+        var dialogue = GetComponent<MobDialogue>();
+        if (dialogue == null) return;
+        dialogue.RemoveStayMob(mob);
+        if (dialogue.Empty)
+            Destroy(dialogue);
     }
 }

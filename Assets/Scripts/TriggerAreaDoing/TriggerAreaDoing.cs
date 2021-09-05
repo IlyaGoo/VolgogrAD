@@ -3,29 +3,39 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public abstract class TriggerAreaDoing : MonoBehaviourExtension {
-
+public abstract class TriggerAreaDoing : MonoBehaviourExtension, ICanBeOwn
+{
+    static readonly string triggerTextPrefix = "Texts/TriggerText";
     [SerializeField] string labelText = null;
     protected GameObject LabelObject;
+    [SerializeField] int labelSize = 0;
     public bool PlayerThere;
     public bool WasdBool;
     public bool needPushButton = true;
-    Vector3 textOffset = new Vector3(-0.6f, 1, 0);
+    [SerializeField] Vector3 textOffset = new Vector3(-0.6f, 1, 0);
 
-    public abstract bool Do(GameObject player);
+    public GameObject owner;
+    public virtual GameObject Owner { get => owner; set => owner = value; }
+
+    public abstract bool Do();
 
     public virtual bool NeedShowLabel()
     {
         return true;
     }
 
+    public virtual void RefreshStateLabel()
+    {
+        TurnLabel(NeedShowLabel());
+    }
+
     protected virtual Transform GetPanelParent() => transform;
 
-    public virtual void WasdDoing(GameObject player)
+    public virtual void WasdDoing()
     { 
     }
 
-    public virtual void DisconectExit(string id)
+    public virtual void DisconnectExit(string id)
     {
     }
 
@@ -44,7 +54,7 @@ public abstract class TriggerAreaDoing : MonoBehaviourExtension {
         if (state && NeedShowLabel())
         {
             if (LabelObject != null) return;
-            LabelObject = Instantiate((GameObject)Resources.Load("TriggerText"), transform.position + textOffset, Quaternion.identity, GetPanelParent());
+            LabelObject = Instantiate((GameObject)Resources.Load(triggerTextPrefix + labelSize), transform.position + textOffset, Quaternion.identity, GetPanelParent());
             UpdateTextLabel();
         }
         else
@@ -60,5 +70,10 @@ public abstract class TriggerAreaDoing : MonoBehaviourExtension {
     private void OnDisable()
     {
         TurnLabel(false);
+    }
+
+    public virtual bool CanInteract(GameObject interactEntity)
+    {
+        return true;
     }
 }

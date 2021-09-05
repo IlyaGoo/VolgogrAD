@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -58,9 +59,9 @@ public class MapScript : MonoBehaviour {
         text.GetComponent<TextMeshProUGUI>().SetText(str);
     }
 
-    public void SetState(int pointNumber, CircleState state)
+    public void SetState(GameObject mapCircleObject, CircleState state)
     {
-        if (pointNumber > allPoints.Count - 1) return;
+        //if (taskPoint.number > allPoints.Count - 1) return;
 
         Color newColor;
         switch (state)
@@ -82,32 +83,33 @@ public class MapScript : MonoBehaviour {
                 break;
         }
 
-        allPoints[pointNumber].GetComponent<Image>().color = newColor;
+        
+        mapCircleObject.GetComponent<Image>().color = newColor;
     }
-	
-    public void AddCircle(string text, int level, int[] parents = null, CircleState state = CircleState.Disable)
+    
+    public void AddCircle(TaskPoint point, CircleState state = CircleState.Disable)
     {
         /*if (allPoints.Count == 0) SpawnStartObjects();*/
-        if (level + 1 > points.Count) points.Add(new List<GameObject>());
-        var newCircle = Instantiate(circlePrefab, new Vector3(panel.transform.position.x, panel.transform.position.y + 120 - 5 *y * level, panel.transform.position.z), Quaternion.identity, mapGameObject.transform);
-        points[level].Add(newCircle);
+        if (point.level + 1 > points.Count) points.Add(new List<GameObject>());
+        var newCircle = Instantiate(circlePrefab, new Vector3(panel.transform.position.x, panel.transform.position.y + 120 - 5 *y * point.level, panel.transform.position.z), Quaternion.identity, mapGameObject.transform);
+        points[point.level].Add(newCircle);
+        point.mapCircleObject = newCircle;
 
         var CircleComponent = newCircle.GetComponent<Circle>();
-        CircleComponent.text = text;
-        CircleComponent.number = allPoints.Count;
+        CircleComponent.taskPoint = point;
 
-        newCircle.GetComponent<Button>().onClick.AddListener(delegate { ControllerScript.ChangeMinigame(CircleComponent.number); });
+        newCircle.GetComponent<Button>().onClick.AddListener(delegate { ControllerScript.ChangeTarget(CircleComponent.taskPoint); });
 
-        for (int i = 0; i < points[level].Count; i++)
+        for (int i = 0; i < points[point.level].Count; i++)
         {
-            points[level][i].transform.position = new Vector3(panel.transform.position.x - (points[level].Count-1) * x / 2 + i * x, points[level][i].transform.position.y, points[level][i].transform.position.z);
+            points[point.level][i].transform.position = new Vector3(panel.transform.position.x - (points[point.level].Count-1) * x / 2 + i * x, points[point.level][i].transform.position.y, points[point.level][i].transform.position.z);
         }
         allPoints.Add(newCircle);
-        SetState(allPoints.Count - 1, state);
+        SetState(point.mapCircleObject, state);
 
 
-        if (parents != null)
-            foreach (var parent in parents)
+        if (point.needPointsNums != null)
+            foreach (var parent in point.needPointsNums)
             {
                 var parentTransform = allPoints[parent].transform;
 

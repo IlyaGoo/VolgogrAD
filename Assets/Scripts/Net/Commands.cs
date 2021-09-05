@@ -7,11 +7,11 @@ using System.Linq;
 
 public class Commands : NetworkBehaviourExtension
 {
-
     [SerializeField] private AudioSource soundsObject;
     [SerializeField] private AudioClip[] sounds;
-    [SerializeField] PlayerNet plNet;
+    [SerializeField] public PlayerNet plNet;
     readonly string[] emptyPotionsNames = new string[] { "WaterEmpty", "PyatLEmpty" };
+    static readonly string objectsPrefix = "Objects/";
 
     #region inventory
     GameObject data;
@@ -103,7 +103,7 @@ public class Commands : NetworkBehaviourExtension
         var itemData = item.GetComponent<DetectingItem>().itemData;
         var prName = itemData.PrefabName;
         var amount = itemData.CurrentAmount;
-        var gameObject = Instantiate(Resources.Load(prName), position, rotation) as GameObject;
+        var gameObject = Instantiate(Resources.Load(objectsPrefix + prName), position, rotation) as GameObject;
         NetworkServer.Spawn(gameObject);
         NetworkServer.Destroy(item);
         RpcSetObjectCount(gameObject, amount);
@@ -112,7 +112,7 @@ public class Commands : NetworkBehaviourExtension
     void TryPut(string prName, int count, InventoryData[] inventories, GameObject controllerObj = null)
     {
         (int, int, int, int) pos;
-        var item = ((GameObject)Resources.Load(prName));
+        var item = ((GameObject)Resources.Load(objectsPrefix + prName));
         if (item == null)
             return;
         var newItemMaxAmount = item.GetComponent<Item>().MaxAmount;
@@ -154,14 +154,14 @@ public class Commands : NetworkBehaviourExtension
     [TargetRpc]
     void TargetTakeItem(NetworkConnection target, string item, int y, int x, int inventoryNum, int count)
     {
-        var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
+        var itemData = ((GameObject)Resources.Load(objectsPrefix + item)).GetComponent<Item>().CopyItem();
         GetComponent<InventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
     }
 
     [ClientRpc]
     void RpcTakeItem(GameObject invObj, string item, int y, int x, int inventoryNum, int count)
     {
-        var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
+        var itemData = ((GameObject)Resources.Load(objectsPrefix + item)).GetComponent<Item>().CopyItem();
         invObj.GetComponent<InventoryController>().inventories[inventoryNum].cells[y, x].Put(itemData, count);
     }
 
@@ -169,7 +169,7 @@ public class Commands : NetworkBehaviourExtension
     void TargetPutItem(NetworkConnection target, GameObject invControllerObject, int num, string item, int y, int x, int count)
     {
         //print(invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].name);
-        var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
+        var itemData = ((GameObject)Resources.Load(objectsPrefix + item)).GetComponent<Item>().CopyItem();
         invControllerObject.GetComponent<InventoryController>().inventories[num].cells[y, x].Put(itemData, count);
     }
 
@@ -177,7 +177,7 @@ public class Commands : NetworkBehaviourExtension
     void TargetForcePutItem(NetworkConnection target, GameObject invControllerObject, int num, string item, int y, int x, int count)
     {
         //print(invControllerObject.GetComponent<PlayerInventoryController>().inventories[num].name);
-        var itemData = ((GameObject)Resources.Load(item)).GetComponent<Item>().CopyItem();
+        var itemData = ((GameObject)Resources.Load(objectsPrefix + item)).GetComponent<Item>().CopyItem();
         invControllerObject.GetComponent<InventoryController>().inventories[num].cells[y, x].PutForce(itemData, count);
     }
 
@@ -187,7 +187,7 @@ public class Commands : NetworkBehaviourExtension
         if (invObj.GetComponent<InventoryController>().inventories[num].data.RemoveItem(y, x, count))
         {
             TargetRemoveItem(connectionToClient, invObj, num, item, y, x, count);
-            var gameObject = Instantiate(Resources.Load(item), position, rotation) as GameObject;
+            var gameObject = Instantiate(Resources.Load(objectsPrefix + item), position, rotation) as GameObject;
             NetworkServer.Spawn(gameObject);
             RpcSetObjectCount(gameObject, count);
             RpcSetItemOwner(gameObject, owner);
@@ -235,7 +235,7 @@ public class Commands : NetworkBehaviourExtension
 
         if (emptyPotionsNames.Contains(data.data.data[y, x].Item1))
         {
-            var p = Resources.Load(data.data.data[y, x].Item1) as GameObject;
+            var p = Resources.Load(objectsPrefix + data.data.data[y, x].Item1) as GameObject;
             var potion = p.GetComponent<Potion>();
             var count = data.data.data[y, x].Item2;
             //TargetRemoveItem(connectionToClient, gameObject, n, data.data.data[y, x].Item1, y, x, count);
@@ -250,7 +250,7 @@ public class Commands : NetworkBehaviourExtension
     [Command]
     public void CmdUseItem(GameObject invObj, int num, string item, int y, int x, int count)
     {
-        var p = Resources.Load(invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
+        var p = Resources.Load(objectsPrefix + invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
         var potion = p.GetComponent<Potion>();
         if (potion.isEmpty)
             return;
@@ -280,7 +280,7 @@ public class Commands : NetworkBehaviourExtension
     void TargetUseItem(NetworkConnection target, GameObject invObj, int num, string item, int y, int x, int count)
     {
         var bar = gameObject.GetComponent<HealthBar>();
-        var p = Resources.Load(invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
+        var p = Resources.Load(objectsPrefix + invObj.GetComponent<InventoryController>().inventories[num].cells[y, x].ItemName) as GameObject;
         var potion = p.GetComponent<Potion>();
         bar.AddEnergy(potion.EnergyAdd);
         bar.AddWater(potion.WaterAdd);
@@ -343,13 +343,13 @@ public class Commands : NetworkBehaviourExtension
     public void CmdWantToChangeInCar(GameObject carArea, string playerId, bool wantSit)
     {
         var area = carArea.GetComponentInChildren<CarAreaDoing>();
-        var player = taskManager.GetPlayerData(playerId).playerObject;
+        var player = EntitysController.instance.GetPlayerData(playerId).entityObject;
 
         if (wantSit)
         {
             if (area.passagers.Contains(playerId))
                 return;
-            if (area.Driver == null && (area.owner == null || area.owner == player))
+            if (area.Driver == null && (area.Owner == null || area.Owner == player))
             {
                 area.Driver = playerId;//сразу приваиваем, чтобы никто не успел стать драйвером еще раз
                 RpcAddPassager(carArea, playerId, true, player);
@@ -518,12 +518,100 @@ public class Commands : NetworkBehaviourExtension
 
     #region sleep
 
+    /** Вызывает любой игрок, когда пытается лечь спать
+     * @param mainSleepObject главный объект, в ребенке которого есть скрипт зоны сна
+     */
     [Command]
-    public void CmdReadyToSkip(string id, int time, GameObject sleepArea, int spriteNum)
+    public void CmdGoToSleep(GameObject mainSleepObject)
     {
-        RpcReadyToSkip(id, time, sleepArea, spriteNum);
+        plNet.RpcStuck();
+        TargetPreapareToSleep(connectionToClient, mainSleepObject);
+        RpcDestroyObjectInHands(localPlayer); //Убираем из рук все вещи
+        var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
+        
+        if (taskManager.gameTimer < sleepAreaComponent.skipTime)
+        {
+            CmdReadyToSkip(localPlayerId, sleepAreaComponent.skipTime, mainSleepObject);
+            TargetSetDebaf(connectionToClient, 3, false);//кидаем сон
+        }
+        else
+        {
+            CmdReadyToSkip(localPlayerId, -1, mainSleepObject);
+            TargetSetSleeperObject(connectionToClient, mainSleepObject);
+            TargetSetDebaf(connectionToClient, 0, false);//кидаем жару
+            TargetSetDebaf(connectionToClient, 2, false);//кидаем чил
+        }
+    }
+
+    /** Если все ок, сообщаем пользователю, что нужно приготовить объект ко сну */
+    [TargetRpc]
+    void TargetPreapareToSleep(NetworkConnection target, GameObject mainSleepObject)
+    {
+        var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
+        sleepAreaComponent.LocalPrepareToSleep();
+    }
+    
+    [TargetRpc]
+    void TargetSetSleeperObject(NetworkConnection target, GameObject mainSleepObject)//todo нужно что-нибудь с этим придумать
+    {
+        var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
+        taskManager.nowSleepObject = sleepAreaComponent;
+    }
+    
+    public void WakeUp(GameObject sleepArea, string guid, bool removing = false)
+    {
+        RpcEntityWakeUp(guid, sleepArea);
+        taskManager.UnReadyToSkip(guid, removing);
+    }
+
+    /** Вызывает любой игрок, когда пытается встать
+     * @param mainSleepObject главный объект, в ребенке которого есть скрипт зоны сна
+     */
+    [Command]
+    public void CmdWakeUp(GameObject mainSleepObject, string guid)
+    {
+        TargetPrepareToWakeUp(connectionToClient, mainSleepObject);
+        TargetOffDebaf(connectionToClient, 0);//Убираем жару
+        TargetOffDebaf(connectionToClient, 2);//Убираем чил
+        TargetOffDebaf(connectionToClient, 3);//Убираем сон
+
+        plNet.RpcWakeUp();
+        WakeUp(mainSleepObject, guid);
+    }
+
+    /** Если все ок, сообщаем пользователю, что нужно приготовить объект к пробуждению */
+    [TargetRpc]
+    void TargetPrepareToWakeUp(NetworkConnection target, GameObject mainSleepObject)
+    {
+        var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
+        sleepAreaComponent.LocalWakeUp();
+    }
+
+    [Command]
+    public void CmdReadyToSkip(string id, int time, GameObject sleepArea)
+    {
+        RpcReadyToSkip(id, sleepArea);
         if (time != -1)
             taskManager.ReadyToSkip(id, time);
+    }
+
+    [Command]
+    public void CmdBotGoSleep(string botId, GameObject sleepArea)
+    {
+        RpcReadyToSkip(botId, sleepArea);
+    }
+
+    [Command]
+    public void CmdBotWakeUp(string botId, GameObject sleepingMainObject)
+    {
+        RpcEntityWakeUp(botId, sleepingMainObject);
+    }
+    
+    
+    [ClientRpc]
+    void RpcEntityWakeUp(string entityId, GameObject sleepingMainObject)
+    {
+        sleepingMainObject.GetComponentInChildren<SleepAreaDoing>().RemoveOneEntity(EntitysController.instance.GetPlayerOrBotData(entityId));
     }
 
     [Command]
@@ -531,31 +619,26 @@ public class Commands : NetworkBehaviourExtension
     {
         if (time != -1)
             taskManager.ReadyToSkip(id, time);
+        TargetOffDebaf(connectionToClient, 0);//Убираем жару
+        TargetOffDebaf(connectionToClient, 2);//Убираем чил
+        TargetSetDebaf(connectionToClient, 3, false);//кидаем сон
     }
 
     [ClientRpc]
-    public void RpcReadyToSkip(string id, float time, GameObject sleepArea, int spriteNum)
+    public void RpcReadyToSkip(string sleeperId, GameObject sleepArea)
     {
-        var spritesHead = Resources.LoadAll<Sprite>("SpritesForBody/Head" + spriteNum);
-        sleepArea.GetComponentInChildren<SleepAreaDoing>().AddOne(id, spritesHead[3]);
+        ReadyToSkip(sleeperId, sleepArea);
     }
-
-    [Command]
-    public void CmdWakeUp(GameObject sleepArea, string guid, bool needReturnItems)
+    
+    [TargetRpc]
+    public void TargetReadyToSkip(NetworkConnection target, GameObject sleepArea, string sleeperId)
     {
-        WakeUp(sleepArea, guid, needReturnItems);
+        ReadyToSkip(sleeperId, sleepArea);
     }
-
-    public void WakeUp(GameObject sleepArea, string guid, bool needReturnItems, bool removing = false)
+    
+    private void ReadyToSkip(string sleeperId, GameObject sleepArea)
     {
-        RpcWakeUp(sleepArea, guid, needReturnItems);
-        taskManager.UnReadyToSkip(guid, removing);
-    }
-
-    [ClientRpc]
-    public void RpcWakeUp(GameObject sleepArea, string sleeper, bool needReturnItems)
-    {
-        sleepArea.GetComponentInChildren<SleepAreaDoing>().RemoveOne(sleeper, needReturnItems);
+        sleepArea.GetComponentInChildren<SleepAreaDoing>().AddOneEntity(EntitysController.instance.GetPlayerOrBotData(sleeperId));
     }
 
     #endregion
@@ -736,7 +819,7 @@ public class Commands : NetworkBehaviourExtension
     }
 
     [ClientRpc]
-    void RpcDestroyObjectInHands(GameObject movingObject)
+    public void RpcDestroyObjectInHands(GameObject movingObject)
     {
         movingObject.GetComponent<StandartMoving>().DestroyOb();
     }
@@ -798,7 +881,28 @@ public class Commands : NetworkBehaviourExtension
     }
 
     #endregion
+    
+    #region tasks
 
+    [ClientRpc]
+    public void RpcEndTaskController(GameObject controllerObject)
+    {
+        controllerObject.GetComponent<TaskControllerScript>().End();
+    }
+
+    #endregion
+
+    [TargetRpc]
+    public void TargetSetDebaf(NetworkConnection target, int debafId, bool ce)
+    {
+        debafsController.AddDebaf(debafId, ce);
+    }
+    
+    [TargetRpc]
+    public void TargetOffDebaf(NetworkConnection target, int debafId)
+    {
+        debafsController.RemoveDebaf(debafId);
+    }
 
     [Command]
     public void CmdSetCampEnter(GameObject camp, bool state)
@@ -821,7 +925,19 @@ public class Commands : NetworkBehaviourExtension
     [ClientRpc]
     public void RpcAddMessege(string text, bool needDestroyPrevious)
     {
-        GetComponent<HeadMessegesManager>().AddMessege(text, needDestroyPrevious);
+        GetComponent<HeadMessagesManager>().AddMessege(text, needDestroyPrevious);
+    }
+
+    [Command]
+    public void CmdAddBotMessege(GameObject bot, string text, bool needDestroyPrevious)
+    {
+        RpcAddMobMessege(bot, text, needDestroyPrevious);
+    }
+
+    [ClientRpc]
+    public void RpcAddMobMessege(GameObject bot, string text, bool needDestroyPrevious)
+    {
+        bot.GetComponent<HeadMessagesManager>().AddMessege(text, needDestroyPrevious);
     }
 
     [Command]
@@ -840,12 +956,6 @@ public class Commands : NetworkBehaviourExtension
     public void CmdSkipTime(int ToTime, int multiplayer)
     {
         taskManager.SkipTo(ToTime, multiplayer);
-    }
-
-    [Command]
-    public void CmdConnected()
-    {
-        GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>().Connected();
     }
 
     [Command]
@@ -875,11 +985,12 @@ public class Commands : NetworkBehaviourExtension
     #region TaskRegion
 
     [Command]
-    public void CmdMiniGamePlus(GameObject controller, int number)
+    public void CmdMiniGameSet(GameObject controller, int number, bool haveController)
     {
         //print("cmd");
-        //RpcMiniGamePlus(controller, number);
-        RpcMiniGameSet(controller, number, controller.GetComponent<TaskControllerScript>()._minigame[number].currentCount + 1);
+        var miniGameController = haveController ? controller.GetComponent<TaskControllerScript>()._minigame[number] :
+            controller.GetComponent<MiniGameController>();
+        RpcMiniGameSet(controller, number, miniGameController.currentCount + 1, haveController);
     }
 
     [ClientRpc]
@@ -888,12 +999,13 @@ public class Commands : NetworkBehaviourExtension
         //Старый метод, теперь используется RpcMiniGameSet()
         controller.GetComponent<TaskControllerScript>()._minigame[number].AddOne();
     }
-
+    
     [ClientRpc]
-    public void RpcMiniGameSet(GameObject controller, int number, int count)
+    public void RpcMiniGameSet(GameObject controller, int number, int count, bool haveController)
     {
-        //TODO вызывается два раза, хуй пойми почему
-        controller.GetComponent<TaskControllerScript>()._minigame[number].SetCount(count);
+        var miniGameController = haveController ? controller.GetComponent<TaskControllerScript>()._minigame[number] :
+            controller.GetComponent<MiniGameController>();
+        miniGameController.SetCount(count);
     }
 
     [Command]
@@ -901,7 +1013,7 @@ public class Commands : NetworkBehaviourExtension
     {
         RpcSetPlan(controller, numOfPlan);
     }
-
+    
     [ClientRpc]
     public void RpcSetPlan(GameObject controller, int numOfPlan)
     {
@@ -921,16 +1033,27 @@ public class Commands : NetworkBehaviourExtension
     }
 
     [Command]
-    public void CmdInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name, int[] stages)
+    public void CmdInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
     {
-        RpcInitTaskController(taskObject, type, needMenu, needButtons, name, stages);
+        RpcInitTaskController(taskObject, type, needMenu, needButtons, name);
     }
 
     [ClientRpc]
-    void RpcInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name, int[] stages)
+    void RpcInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
+    {
+        InitTaskController(taskObject, type, needMenu, needButtons, name);
+    }
+    
+    [TargetRpc]
+    public void TargetInitTaskController(NetworkConnection target, GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
+    {
+        InitTaskController(taskObject, type, needMenu, needButtons, name);
+    }
+
+    void InitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
     {
         var taskController = taskObject.GetComponent<TaskControllerScript>();//cooker, digger итд
-        taskController.Reinitializate(type, needMenu, needButtons, name, stages);
+        taskController.Reinitializate(type, needMenu, needButtons, name);
     }
     #endregion
 }

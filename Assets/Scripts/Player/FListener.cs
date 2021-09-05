@@ -14,19 +14,19 @@ public class FListener : MonoBehaviour, IListener
     {
         if (!mov.CanThrove)
         {
-            mov.GetComponent<HeadMessegesManager>().AddMessege("Мб в другой раз");
+            mov.GetComponent<HeadMessagesManager>().AddMessege("Мб в другой раз");
             return;
         }
 
         if (currentHover != null)
         {
             int count = Input.GetKey(KeyCode.LeftControl) ? currentHover.CellRef.Amount : 1;
-            cmd.CmdThroveItem(currentHover.invObj.InventoryCintrollerObject, currentHover.invObj.Number, currentHover.CellRef.ItemName, currentHover.y, currentHover.x, count, transform.position, Quaternion.identity, currentHover.CellRef.Content.owner);
+            cmd.CmdThroveItem(currentHover.invObj.InventoryControllerObject, currentHover.invObj.Number, currentHover.CellRef.ItemName, currentHover.y, currentHover.x, count, transform.position, Quaternion.identity, currentHover.CellRef.Content.owner);
         }
         else if (inventoryPanel.choosenCell != null && inventoryPanel.choosenCell.CellRef.ItemName != "")
         {
             int count = Input.GetKey(KeyCode.LeftControl) ? inventoryPanel.choosenCell.CellRef.Amount : 1;
-            cmd.CmdThroveItem(inventoryPanel.choosenCell.invObj.InventoryCintrollerObject, inventoryPanel.choosenCell.invObj.Number, inventoryPanel.choosenCell.CellRef.ItemName, inventoryPanel.choosenCell.y, inventoryPanel.choosenCell.x, count, transform.position, Quaternion.identity, inventoryPanel.choosenCell.CellRef.Content.owner);
+            cmd.CmdThroveItem(inventoryPanel.choosenCell.invObj.InventoryControllerObject, inventoryPanel.choosenCell.invObj.Number, inventoryPanel.choosenCell.CellRef.ItemName, inventoryPanel.choosenCell.y, inventoryPanel.choosenCell.x, count, transform.position, Quaternion.identity, inventoryPanel.choosenCell.CellRef.Content.owner);
 
         }
     }

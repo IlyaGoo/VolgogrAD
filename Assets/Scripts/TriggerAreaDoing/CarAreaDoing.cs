@@ -14,8 +14,6 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
     public CarMoving carComponent;
     public CarSyn synComponent;
     bool PlayerInCar = false;
-    public GameObject owner = null;
-    public GameObject Owner { get => owner; set => owner = value; }
 
     protected override Transform GetPanelParent() => transform.parent;//Иначе при повороте надпись будет крутиться
 
@@ -25,8 +23,8 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
         set 
         { 
             driver = value;
-            var data = taskManager.GetPlayerData(value);
-            driverObject = data == null ? null : taskManager.GetPlayerData(value).playerObject;
+            var data = EntitysController.instance.GetPlayerData(value);
+            driverObject = data == null ? null : EntitysController.instance.GetPlayerData(value).entityObject;
         } 
     }
 
@@ -35,9 +33,9 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
         return !PlayerInCar && PlayerThere;
     }
 
-    public bool CanInteract(GameObject mayBeOwner)
+    public override bool CanInteract(GameObject interactEntity)
     {
-        return owner == null || owner == mayBeOwner || (owner.CompareTag("Player") && !playerMetaData.privateItems);
+        return owner == null || owner == interactEntity || owner.CompareTag("Player") && !playerMetaData.privateEnable;
     }
 
     public void AddOne(string newPassagerId, bool isDriver, GameObject newPassager)
@@ -46,19 +44,19 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
         {
             motor.Play();
         }
-        localPlayer.GetComponent<PlayerNet>().AddDoing(newPassager.GetComponent<NetworkIdentity>().netId.ToString(), this);//Добавляем в player net текущее действие, чтобы при дисконекте встать
+        localPlayerNet.AddDoing(newPassager.GetComponent<NetworkIdentity>().netId.ToString(), this);//Добавляем в player net текущее действие, чтобы при дисконекте встать
         newPassager.GetComponent<CircleCollider2D>().enabled = false;
         if (isDriver)
             Driver = newPassagerId;
         carComponent.passagers.Add(newPassager);
         passagers.Add(newPassagerId);
-        TurnLabel(NeedShowLabel());
+        RefreshStateLabel();
 
         if (localPlayer == newPassager)
-            SitIn(isDriver, newPassager);
+            SitIn(isDriver);
 
-        newPassager.transform.parent = gameObject.transform.parent;
-        newPassager.transform.position = gameObject.transform.position + carComponent.passagersOffset;
+        newPassager.transform.parent = transform.parent;
+        newPassager.transform.position = transform.position + CarMoving.passagersOffset;
     }
 
     public void RemoveOne(string removingPassagerId, bool isDriver, GameObject removingPassager)
@@ -67,7 +65,7 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
             carComponent.ClearMissingsPassagers();
         else  //Когда убираем дисконектнувшегося игрока, ничего возвращать не нужно
         {
-            playerNet.RemoveDoing(removingPassager.GetComponent<NetworkIdentity>().netId.ToString(), this);//Убираем из player net текущее действие
+            localPlayerNet.RemoveDoing(removingPassager.GetComponent<NetworkIdentity>().netId.ToString(), this);//Убираем из player net текущее действие
             removingPassager.GetComponent<CircleCollider2D>().enabled = true;
             removingPassager.transform.parent = null;
         }
@@ -78,81 +76,78 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
             motor.Stop();
         }
         carComponent.passagers.Remove(removingPassager);
-        
-        TurnLabel(NeedShowLabel());
+
+        RefreshStateLabel();
         if (isDriver)
             Driver = null;
 
         if (localPlayer == removingPassager)
-            SitOut(isDriver, removingPassager);
+            SitOut(isDriver);
     }
 
-    public void SitOut(bool isDriver, GameObject player)
+    public void SitOut(bool isDriver)
     {
         if (isDriver)
         {
             carComponent.canMove = canDrive = false;
             synComponent.isDriver = false;
-            var listenerManager = player.GetComponent<ListenersManager>();
-            listenerManager.FListeners.Remove(this);
-            listenerManager.QListeners.Remove(carComponent.GetComponent<RadioSounder>());
-            listenerManager.QUpListeners.Remove(carComponent.GetComponent<RadioSounder>());
+            localListenersManager.FListeners.Remove(this);
+            localListenersManager.QListeners.Remove(carComponent.GetComponent<RadioSounder>());
+            localListenersManager.QUpListeners.Remove(carComponent.GetComponent<RadioSounder>());
             carComponent.GetComponent<RadioSounder>().EventUpDid();//выключаем отображение радио вручную, если человек не отжал Q при выходе
-            commands.CmdSetRadio(carComponent.gameObject, false);
+            localCommands.CmdSetRadio(carComponent.gameObject, false);
         }
         PlayerInCar = false;
-        playerNet.CmdWakeUp();
-        playerInventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
-        playerInventoryController.inventories[0].BackInHands();//Возвращаем в руки все
-        TurnLabel(NeedShowLabel());
+        localPlayerNet.CmdWakeUp();
+        localPlayerInventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
+        localPlayerInventoryController.inventories[0].BackInHands();//Возвращаем в руки все
+        RefreshStateLabel();
     }
 
-    public void SitIn(bool isDriver, GameObject player)
+    public void SitIn(bool isDriver)
     {
         if (isDriver)
         {
             carComponent.lastpos = carComponent.transform.position;
-            carComponent.playerCommands = commands;
             carComponent.canMove = canDrive = true;
-            var listenerManager = player.GetComponent<ListenersManager>();
-            listenerManager.FListeners.Add(this);
-            listenerManager.QListeners.Add(carComponent.GetComponent<RadioSounder>());
-            listenerManager.QUpListeners.Add(carComponent.GetComponent<RadioSounder>());
+            localListenersManager.FListeners.Add(this);
+            localListenersManager.QListeners.Add(carComponent.GetComponent<RadioSounder>());
+            localListenersManager.QUpListeners.Add(carComponent.GetComponent<RadioSounder>());
 
-            commands.CmdSetRadio(carComponent.gameObject, true);
+            localCommands.CmdSetRadio(carComponent.gameObject, true);
             carComponent.GetComponent<RadioSounder>().Init();
 
-            synComponent._commands = player.GetComponent<Commands>();
+            synComponent._commands = localCommands;
             synComponent.isDriver = true;
         }
         PlayerInCar = true;
-        playerNet.CmdUnstuck();
-        commands.CmdDestroyObjectInHands(player); //Убираем из рук все вещи
-        playerInventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
-        TurnLabel(NeedShowLabel());
+        localPlayerNet.CmdUnstuck();
+        localCommands.CmdDestroyObjectInHands(localPlayer); //Убираем из рук все вещи
+        localPlayerInventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
+        RefreshStateLabel();
     }
 
-    public override void DisconectExit(string id)
+    public override void DisconnectExit(string id)
     {
         if (passagers.Contains(id))
         {
-            commands.CmdWantToChangeInCar(transform.parent.gameObject, id, false);
+            localCommands.CmdWantToChangeInCar(transform.parent.gameObject, id, false);
         }
     }
 
-    public override bool Do(GameObject player)
+    public override bool Do()
     {
         if (passagers.Contains(localPlayerId))
         {
             if (carComponent.gameObject.GetComponent<Rigidbody2D>().velocity.magnitude > 1)
                 return false;
             TurnLabel(true);
-            commands.CmdWantToChangeInCar(transform.parent.gameObject, localPlayerId, false);
+            localCommands.CmdWantToChangeInCar(transform.parent.gameObject, localPlayerId, false);
         }
         else if (passagers.Count < MaxCount)
         {
             TurnLabel(false);
-            commands.CmdWantToChangeInCar(transform.parent.gameObject, localPlayerId, true);
+            localCommands.CmdWantToChangeInCar(transform.parent.gameObject, localPlayerId, true);
         }
         else
             return false;
@@ -161,6 +156,6 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
 
     public void EventDid()
     {
-        commands.CmdSetLightsState(transform.parent.gameObject, !carComponent.LightsState);
+        localCommands.CmdSetLightsState(transform.parent.gameObject, !carComponent.LightsState);
     }
 }

@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class TaskControllerAreaDoing : TriggerAreaDoing
 {
+    [SerializeField] private TaskControllerScript thisTaskControllerScript;
     public override bool NeedShowLabel()
     {
-        var a = GetComponent<TaskControllerScript>();
-        return a.isOn && PlayerThere;
+        return thisTaskControllerScript.isOn && PlayerThere;
     }
 
-    public override bool Do(GameObject player)
+    public override bool Do()
     {
-        player.GetComponent<Commands>().CmdStartGames(gameObject);
+        localCommands.CmdStartGames(gameObject);
         return true;
     }
 }

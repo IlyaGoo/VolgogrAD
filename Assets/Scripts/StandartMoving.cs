@@ -3,10 +3,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
-public abstract class StandartMoving : NetworkBehaviour
+public abstract class StandartMoving : NetworkBehaviourExtension
 {
-    public float speed = 1.4f;
+    public string GetId() => GetComponent<NetworkIdentity>().netId.ToString();
+    
+    public int oldLevel = 0;
+    public float maxSpeed = 1.4f;
+    public float normalSpeedForAnimation = 3;
     public List<ObjectInHands> objectsInHands = new List<ObjectInHands>();
     public List<string> inHandsNames = new List<string>();
     public int frontState = -1; //сверху вних 1 2 3
@@ -25,15 +30,66 @@ public abstract class StandartMoving : NetworkBehaviour
 
     protected readonly float multiplayer = Mathf.Sin(45);
     protected float currentMultiplayer;
-    protected float shiftMultiplayer = 1;
+    [SerializeField] protected float shiftMultiplayer = 0.6f;
 
-    protected bool inWater;
+    public SpeedMultiplayer currentShiftMultiplayer = null;
+    public SpeedMultiplayer currentWaterMultiplayer = null;
+
+    public List<SpeedMultiplayer> speedMultiplayers = new List<SpeedMultiplayer>();
+    public float currentSpeedMultiplayer = 1;
+
+    public bool inWater;
     public int waterLevel;
     public bool stacked = false;
 
     public bool isShifted = false;
 
     public List<GameObject> dontBeReflect = new List<GameObject>();
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        SpawnDataObject();
+    }
+
+    public virtual void SpawnDataObject() { }
+
+    public void ChangeShiftMultiplayer(float newValue)
+    {
+        shiftMultiplayer = newValue;
+    }
+
+    public float GetShiftMultiplayer()
+    {
+        return shiftMultiplayer;
+    }
+
+    public float GetEndSpeedMultiplayer()
+    {
+        float res = 1;
+        foreach (var mult in speedMultiplayers)
+            res *= mult.value;
+        return res;
+    }
+
+    void RefreshSpeedMultiplayer()
+    {
+        currentSpeedMultiplayer = GetEndSpeedMultiplayer();
+    }
+
+    public SpeedMultiplayer AddSpeedMultiplayer(float speed)
+    {
+        var res = new SpeedMultiplayer { value = speed };
+        speedMultiplayers.Add(res);
+        RefreshSpeedMultiplayer();
+        return res;
+    }
+
+    public void RemoveSpeedMultiplayer(SpeedMultiplayer multiplayer)
+    {
+        speedMultiplayers.Remove(multiplayer);
+        RefreshSpeedMultiplayer();
+    }
 
     public void SetAnim(float xMove, float yMove, float multyplayer, bool newShifter)
     {
@@ -154,7 +210,6 @@ public abstract class StandartMoving : NetworkBehaviour
         }
     }
 
-    public abstract PlayerNet PlNet();
     protected abstract bool DigIsLocal();
     protected abstract bool FindIsController();
 
@@ -172,7 +227,7 @@ public abstract class StandartMoving : NetworkBehaviour
                 newObj.GetComponent<Dig>().isLocal = isLocalPlayer;
             else if (newObj.CompareTag("FindCircle"))
             {
-                newObj.GetComponent<MetallDetectorScript>().Init(PlNet(), FindIsController());
+                newObj.GetComponent<MetallDetectorScript>().Init(FindIsController());
             }
             var obComp = newObj.GetComponent<ObjectInHands>();
             objectsInHands.Add(obComp);
@@ -204,6 +259,14 @@ public abstract class StandartMoving : NetworkBehaviour
         headAnimator.GetComponent<SpriteRenderer>().enabled = state;
     }
 
+    void SetWaterMultiplayer(float value)
+    {
+        if (currentWaterMultiplayer != null) RemoveSpeedMultiplayer(currentWaterMultiplayer);
+        currentWaterMultiplayer = AddSpeedMultiplayer(value);
+        if (currentShiftMultiplayer != null) RemoveSpeedMultiplayer(currentShiftMultiplayer);
+        currentShiftMultiplayer = null;
+    }
+
     public virtual void EnterInWater(int deep)
     {
         waterLevel = deep;
@@ -211,14 +274,18 @@ public abstract class StandartMoving : NetworkBehaviour
         {
             case 0:
                 inWater = false;
+                if (currentWaterMultiplayer != null) RemoveSpeedMultiplayer(currentWaterMultiplayer);
+                currentWaterMultiplayer = null;
                 /*lagsAnimator.gameObject.SetActive(true);
                 bodyAnimator.gameObject.SetActive(true);*/
                 lagsAnimator.GetComponent<SpriteRenderer>().enabled = true;
                 bodyAnimator.GetComponent<SpriteRenderer>().enabled = true;
+/*                localPlayerInventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
+                localPlayerInventoryController.inventories[0].BackInHands();//Возвращаем в руки все*/
                 break;
             case 1:
                 inWater = true;
-                shiftMultiplayer = 0.6f;
+                SetWaterMultiplayer(0.6f);
                 /*lagsAnimator.gameObject.SetActive(false);
                 bodyAnimator.gameObject.SetActive(true);*/
                 lagsAnimator.GetComponent<SpriteRenderer>().enabled = false;
@@ -226,7 +293,7 @@ public abstract class StandartMoving : NetworkBehaviour
                 break;
             case 2:
                 inWater = true;
-                shiftMultiplayer = 0.4f;
+                SetWaterMultiplayer(0.4f);
                 /*lagsAnimator.gameObject.SetActive(false);
                 bodyAnimator.gameObject.SetActive(false);*/
                 lagsAnimator.GetComponent<SpriteRenderer>().enabled = false;
@@ -349,4 +416,9 @@ public abstract class StandartMoving : NetworkBehaviour
             }
         }
     }
+}
+
+public class SpeedMultiplayer
+{
+    public float value = 1;
 }

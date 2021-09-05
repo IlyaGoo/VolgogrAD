@@ -4,13 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Algo : MonoBehaviour {
-
+    public static Algo instance;
     public List<Point> points;
     public List<Point>[,] paths;
 
     public List<GraphEdge> GrEdges = new List<GraphEdge>();
 
-    // Use this for initialization
+    private Algo()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
     void Start () {
         points = new List<Point>(gameObject.transform.childCount);
         paths = new List<Point>[gameObject.transform.childCount, gameObject.transform.childCount];

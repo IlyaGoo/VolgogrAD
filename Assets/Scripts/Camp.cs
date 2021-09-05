@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Camp : MonoBehaviour
+public class Camp : MonoBehaviourExtension, ICanBeOwn
 {
     int plCount = 0;
     [SerializeField] SpriteRenderer[] renders;
+    public SleepAreaDoing sleepArea = null;
+    public Point ownPoint;
+    public GameObject owner;
+
+    public GameObject Owner { get => owner; set => owner = value; }
 
     public void RemovePlayer()
     {
@@ -19,7 +24,6 @@ public class Camp : MonoBehaviour
         plCount++;
         if (plCount == 1)
             SetOn();
-
     }
     
     void SetOn()
@@ -44,5 +48,10 @@ public class Camp : MonoBehaviour
     {
         var objectRender = GetComponent<SpriteRenderer>();
         objectRender.color = new Color(objectRender.color.r, objectRender.color.g, objectRender.color.b, transparencyValue);
+    }
+
+    public bool CanInteract(GameObject interactEntity)
+    {
+        return owner == null || owner == interactEntity || owner.CompareTag("Player") && !playerMetaData.privateEnable;
     }
 }

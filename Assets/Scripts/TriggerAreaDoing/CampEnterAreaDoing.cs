@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class CampEnterAreaDoing : TriggerAreaDoing
 {
+    [SerializeField] Camp camp;
     [SerializeField] AudioSource source;
     [SerializeField] SpriteRenderer currentRender;
     [SerializeField] Collider2D currentCollider;
@@ -11,10 +12,16 @@ public class CampEnterAreaDoing : TriggerAreaDoing
     [SerializeField] Sprite closeSprite = null;
     public bool isOpen = false;
     readonly string[] labelTexts = new string[2] { "Открыть", "Закрыть" };
+    public override GameObject Owner { get => camp.Owner; set => owner = value; }
 
-    public override bool Do(GameObject player)
+    public override bool CanInteract(GameObject interactEntity)
     {
-        player.GetComponent<Commands>().CmdSetCampEnter(gameObject, !isOpen);
+        return camp.CanInteract(interactEntity);
+    }
+
+    public override bool Do()
+    {
+        localCommands.CmdSetCampEnter(gameObject, !isOpen);
         return true;
     }
 

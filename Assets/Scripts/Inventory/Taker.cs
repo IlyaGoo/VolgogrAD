@@ -15,38 +15,30 @@ public class Taker : MonoBehaviourExtension, IListener
 
     public GameObject currentAreaDoing;
 
-
     public TakerDoing current_can = TakerDoing.Empty;
     public bool isLocal = false;
 
-
     public List<GameObject> inTriggerObjects = new List<GameObject>();
-    readonly string[] tags = new string[] { "Item", "AreaDoing" };
 
     public void Init() {
-        playNet.listenersManager.SpaceListeners.Add(this);
+        localListenersManager.SpaceListeners.Add(this);
         isLocal = true;
-        taskManager._taker = this;
     }
 
     void OnTriggerEnter2D(Collider2D col)
     {
         switch (col.gameObject.tag)
         {
-            case "Item":
-                if (!col.GetComponent<Item>().CanInteract(player)) return;
-                inTriggerObjects.Add(col.gameObject);
-                if (inTriggerObjects.Count == 1) TakeFirst();
-                break;
             case "TriggerArea":
-                player.GetComponent<Commands>().CmdStartGames(col.gameObject);
+                cmd.CmdStartGames(col.gameObject);
                 break;
             case "AreaDoing":
                 {
-                    inTriggerObjects.Add(col.gameObject);
                     var triggerScript = col.gameObject.GetComponent<TriggerAreaDoing>();
+                    if (!triggerScript.CanInteract(player)) return;
+                    inTriggerObjects.Add(col.gameObject);
                     if (!triggerScript.needPushButton)
-                        triggerScript.Do(player);
+                        triggerScript.Do();
                     if (inTriggerObjects.Count == 1) TakeFirst();
                     break;
                 }
@@ -70,48 +62,35 @@ public class Taker : MonoBehaviourExtension, IListener
                 return;
             }
 
-
-            switch (nedTaking.tag)
+            if (nedTaking.CompareTag("AreaDoing"))
             {
-                case "Item":
-                    current_can = TakerDoing.Item;
-                    break;
-                case "AreaDoing":
-                    {
-                        current_can = TakerDoing.Area;
-                        currentAreaDoing = nedTaking;
-                        var areaDo = nedTaking.GetComponent<TriggerAreaDoing>();
-                        areaDo.PlayerThere = true;
-                        areaDo.TurnLabel(true);
-                        break;
-                    }
+                current_can = TakerDoing.Area;
+                currentAreaDoing = nedTaking;
+                var areaDo = nedTaking.GetComponent<TriggerAreaDoing>();
+                areaDo.PlayerThere = true;
+                areaDo.TurnLabel(true);
             }
         }
     }
 
     void OnTriggerExit2D(Collider2D col)
     {
-        if (!tags.Contains(col.tag)) return;
+        if (!col.CompareTag("AreaDoing")) return;
         int num = inTriggerObjects.IndexOf(col.gameObject);
-        if(num != -1)
+        if (num != -1)
         {
             inTriggerObjects.RemoveAt(num);
 
             if (num == 0)
             {
-                switch (col.tag)
+                var areaDo = col.GetComponent<TriggerAreaDoing>();
+                if (col.gameObject == currentAreaDoing)
                 {
-                    case "AreaDoing":
-                        var areaDo = col.GetComponent<TriggerAreaDoing>();
-                        if (col.gameObject == currentAreaDoing)
-                        {
-                            areaDo.ExitFrom(player);
-                        }
-                        currentAreaDoing = null;
-                        areaDo.TurnLabel(false);
-                        areaDo.PlayerThere = false;
-                        break;
+                    areaDo.ExitFrom(player);
                 }
+                currentAreaDoing = null;
+                areaDo.TurnLabel(false);
+                areaDo.PlayerThere = false;
 
                 TakeFirst();
             }
@@ -124,32 +103,22 @@ public class Taker : MonoBehaviourExtension, IListener
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D))
         {
             if (currentAreaDoing != null && currentAreaDoing.GetComponent<TriggerAreaDoing>().WasdBool)
-                currentAreaDoing.GetComponent<TriggerAreaDoing>().WasdDoing(player);
+                currentAreaDoing.GetComponent<TriggerAreaDoing>().WasdDoing();
         }
     }
 
     public void EventDid()
     {
-        switch (current_can)
+        if (current_can == TakerDoing.Area)
         {
-            case TakerDoing.Item:
-                Item item = inTriggerObjects[0].GetComponent<Item>();
-                if (InventoryRef.CanPutItem(item.CopyItem()))
-                {
-                    cmd.CmdPlaySound(0);
-                    cmd.CmdTakeItem(inTriggerObjects[0]);
-                }
-                break;
-            case TakerDoing.Area:
-                var triggerScript = currentAreaDoing.GetComponent<TriggerAreaDoing>();
-                if (triggerScript.needPushButton)
-                    triggerScript.Do(player);
-                break;
+            var triggerScript = currentAreaDoing.GetComponent<TriggerAreaDoing>();
+            if (triggerScript.needPushButton)
+                triggerScript.Do();
         }
     }
 }
 
 public enum TakerDoing
 {
-    Item, Area, Empty
+    Area, Empty
 }

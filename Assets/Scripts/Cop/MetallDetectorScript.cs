@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MetallDetectorScript : MonoBehaviour {
+public class MetallDetectorScript : MonoBehaviourExtension {
 
     [SerializeField] float radius = 0;
     List<GameObject> detectingItems = new List<GameObject>();
-    PlayerNet playerNet;
     bool isControllerPlayer;
     [SerializeField] int depthZone = 1;
     string currentZone = "";
@@ -15,9 +14,8 @@ public class MetallDetectorScript : MonoBehaviour {
     Vector4 zone3 = new Vector4(1, 0.6f, 0, 1);
     Vector4 zone2 = new Vector4(1, 0.3f, 0, 1);
 
-    public void Init(PlayerNet plNet, bool isController)
+    public void Init(bool isController)
     {
-        playerNet = plNet;
         isControllerPlayer = isController;
     }
 
@@ -33,7 +31,7 @@ public class MetallDetectorScript : MonoBehaviour {
             if (!isControllerPlayer) return;
             if (col.gameObject.GetComponent<BlockController>() == null)
             {
-                playerNet.CmdSetWhole(col.transform.position, currentZone);
+                localPlayerNet.CmdSetWhole(col.transform.position, currentZone);
             }
         }
         else if (col.gameObject.CompareTag("CopZone"))

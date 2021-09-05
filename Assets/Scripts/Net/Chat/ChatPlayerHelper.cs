@@ -7,20 +7,6 @@ using Mirror;
 using System.Globalization;
 
 public class ChatPlayerHelper : NetworkBehaviourExtension { 
-    public ChatHelper _gameHelper;
-
-    public void Init()
-    {
-        if (_gameHelper != null) return;
-        _gameHelper = FindObjectOfType<ChatHelper>();
-
-        if (isLocalPlayer)
-        {
-            _gameHelper._currentplayer = this;
-            _gameHelper.manager = GetComponent<ListenersManager>();
-        }
-    }
-
     public void Send(string nickname, string message)
     {
         var id = GetComponent<NetworkIdentity>().netId.ToString();
@@ -82,7 +68,7 @@ public class ChatPlayerHelper : NetworkBehaviourExtension {
                         newSpeed = float.Parse(command[1], CultureInfo.InvariantCulture);
                     }
                     catch {}
-                    GetComponent<Moving>().speed = newSpeed;
+                    GetComponent<Moving>().maxSpeed = newSpeed;
                     break;
                 case "private":
                     if (command.Length < 2) break;
@@ -99,19 +85,19 @@ public class ChatPlayerHelper : NetworkBehaviourExtension {
     [ClientRpc]
     public void RpcSetPrivate(bool newState)
     {
-        playerMetaData.privateItems = newState;
+        playerMetaData.privateEnable = newState;
     }
 
     [ClientRpc]
     public void RpcSend(string id, string nickname, string message)
     {
-        _gameHelper.AddMessage(id, nickname, message);
+        chatHelper.AddMessage(id, nickname, message);
     }
 
     [ClientRpc]
     public void RpcSendLine(string message)
     {
-        _gameHelper.AddLine(message);
+        chatHelper.AddLine(message);
     }
 
 }

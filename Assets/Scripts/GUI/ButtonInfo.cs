@@ -12,31 +12,33 @@ public class ButtonInfo : MonoBehaviour {
     public float height;
     public Menu ownMenu;
     public int number;
-    public int numberCostil = -1;
-    private int pointNum = -1;
+    public MiniGameController gameController = null;
     public GameObject buttonObject;
 
     public GameObject arrow;
 
-    public void ChangePoint(int num)
+    public void ChangePoint(MiniGameController gameController)
     {
-        pointNum = num;
+        this.gameController = gameController;
     }
 
     public void ChangeTarget(bool state)
     {
-        if (pointNum != -1) ownMenu.mapScript.SetState(pointNum, isTarget ? CircleState.Enable : CircleState.Choosen);
+        if (!canChange) return;
+        //if (gameController != null) ownMenu.mapScript.SetState(gameController.taskPoint, isTarget ? CircleState.Enable : CircleState.Choosen);
         if (isTarget == state) return;
-        if (isTarget)
+        isTarget = state;
+        if (state)
         {
-            isTarget = false;
-            Destroy(arrow);
+            ownMenu.targetButton = this;
+            TaskMenuScript.instance.targetMenu = ownMenu;
+            arrow = Instantiate(arrowPrefab, new Vector3(gameObject.transform.position.x - 25, gameObject.transform.position.y + 8, gameObject.transform.position.z), Quaternion.identity, gameObject.transform);
         }
         else
         {
-            isTarget = true;
-            ownMenu.targetButton = this;
-            arrow = Instantiate(arrowPrefab, new Vector3(gameObject.transform.position.x - 25, gameObject.transform.position.y + 8, gameObject.transform.position.z), Quaternion.identity, gameObject.transform);
+            ownMenu.targetButton = null;
+            TaskMenuScript.instance.targetMenu = null;
+            Destroy(arrow);
         }
     }
 }

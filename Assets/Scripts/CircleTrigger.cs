@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CircleTrigger : MonoBehaviour
+public class CircleTrigger : MonoBehaviourExtension
 {
     [SerializeField] private GameObject currentObject;
     [SerializeField] Moving moving;
-    public Commands cmd;
     [SerializeField] InventoryController inventoryController;
     int deep;
     int deep2;
@@ -29,7 +28,7 @@ public class CircleTrigger : MonoBehaviour
                     deep2 = 1;
                 if (moving != null && !moving.objectsStopsThrove.Contains(col.gameObject))
                     moving.objectsStopsThrove.Add(col.gameObject);
-                cmd.CmdEnterInWater(currentObject, 1);
+                localCommands.CmdEnterInWater(currentObject, 1);
                 inventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
                 break;
             case "WaterDeepArea":
@@ -40,7 +39,7 @@ public class CircleTrigger : MonoBehaviour
                     deep2 = 2;
                 if (moving != null && !moving.objectsStopsThrove.Contains(col.gameObject))
                     moving.objectsStopsThrove.Add(col.gameObject);
-                cmd.CmdEnterInWater(currentObject, 2);
+                localCommands.CmdEnterInWater(currentObject, 2);
                 inventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь, на случай если тпшнулись
                 break;
         }
@@ -75,14 +74,15 @@ public class CircleTrigger : MonoBehaviour
                     {
                         deep = 0;
                         deep2 = 0;
+                        localCommands.CmdEnterInWater(currentObject, 0);
+                        currentObject.GetComponent<StandartMoving>().inWater = false;
                         inventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
                         inventoryController.inventories[0].BackInHands();//Возвращаем в руки все
-                        cmd.CmdEnterInWater(cmd.gameObject, 0);
                     }
                     else if (deep2 == 2)
                     {
                         deep = 2;
-                        cmd.CmdEnterInWater(currentObject, 2);
+                        localCommands.CmdEnterInWater(currentObject, 2);
                         inventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь, на случай если тпшнулись
                     }
                 }
@@ -101,14 +101,16 @@ public class CircleTrigger : MonoBehaviour
                     if (deep2 == 2)
                     {
                         deep = 0;
+                        deep2 = 0;
+                        localCommands.CmdEnterInWater(currentObject, 0);
+                        currentObject.GetComponent<StandartMoving>().inWater = false;
                         inventoryController.inventories[0].SetFreeze(false);//Снова включаем панель предметов
                         inventoryController.inventories[0].BackInHands();//Возвращаем в руки все
-                        cmd.CmdEnterInWater(currentObject, 0);
                     }
                     else if (deep2 == 1)
                     {
                         deep = 1;
-                        cmd.CmdEnterInWater(currentObject, 1);
+                        localCommands.CmdEnterInWater(currentObject, 1);
                         inventoryController.inventories[0].SetFreeze(true);//Фризим инвентарь
                     }
                 }

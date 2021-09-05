@@ -7,16 +7,17 @@ using System;
 public class Moving : StandartMoving
 {
     [SerializeField] AudioSource GoingSource;
-    [SerializeField] AudioClip[] goingClip;
+    [SerializeField] AudioClip[] goingClips;
+    [SerializeField] AudioClip[] swimmingClips;
     private bool m_FacingRight = true;
     public PlayerNet plNet;
-    public override PlayerNet PlNet() => plNet;
     protected override bool DigIsLocal() => isLocalPlayer;
     protected override bool FindIsController() => isLocalPlayer;
     public bool controlled = false;
     public bool initializated = false;
 
-    public List<GameObject> objectsStopsThrove = new List<GameObject>();
+    //todo звучит как какая-то дичь
+    public List<GameObject> objectsStopsThrove = new List<GameObject>();//Список объектов запрещающих выбрасывать что-то из инвентаря
     public bool CanThrove => objectsStopsThrove.Count == 0;
 
     void FixedUpdate()
@@ -24,19 +25,27 @@ public class Moving : StandartMoving
         if (!isLocalPlayer || stacked) return;
         float xMove = 0;
         float yMove = 0;
-        bool newShifter = false;
+        bool nowShifter = false;
 
         if (!inWater)
         {
             if (Input.GetKey(KeyCode.LeftShift))
             {
-                shiftMultiplayer = 0.6f;
-                newShifter = true;
+                if (!isShifted)
+                {
+                    if (currentShiftMultiplayer != null) RemoveSpeedMultiplayer(currentShiftMultiplayer);
+                    currentShiftMultiplayer = AddSpeedMultiplayer(shiftMultiplayer);
+                }
+                nowShifter = true;
             }
             else
             {
-                shiftMultiplayer = 1;
-                newShifter = false;
+                if (isShifted)
+                {
+                    if (currentShiftMultiplayer != null) RemoveSpeedMultiplayer(currentShiftMultiplayer);
+                    currentShiftMultiplayer = null;
+                }
+                nowShifter = false;
             }
         }
 
@@ -50,8 +59,7 @@ public class Moving : StandartMoving
             xMove *= multiplayer;
             yMove *= multiplayer;
         }
-
-        CmdSendFloats(xMove, yMove, shiftMultiplayer, newShifter);
+        CmdSendFloats(xMove, yMove, currentSpeedMultiplayer, nowShifter);
 
         if (xMove > 0 && !m_FacingRight)
             Flip();
@@ -60,7 +68,7 @@ public class Moving : StandartMoving
 
         //body.AddForce(transform.right *speed * xMove);
         //body.MovePosition(new Vector2((transform.position + transform.right * speed * Time.deltaTime * xMove).x, (transform.position + transform.up * speed * Time.deltaTime * yMove * 1.5f).y));
-        transform.position += (transform.up * yMove + transform.right * xMove) * speed * Time.fixedDeltaTime * shiftMultiplayer;
+        transform.position += (transform.up * yMove + transform.right * xMove) * maxSpeed * Time.fixedDeltaTime * currentSpeedMultiplayer;
         transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.y / 100);
     }
 
@@ -76,9 +84,12 @@ public class Moving : StandartMoving
         SetAnim(xMove, yMove, multyplayer, shifted);
         if (xMove != 0 || yMove != 0)
         {
-            GoingSource.pitch = multyplayer;
+            GoingSource.pitch = 0.4f + 0.6f * multyplayer;
             if (!GoingSource.isPlaying)
+            {
+                GoingSource.clip = inWater ? swimmingClips[UnityEngine.Random.Range(0, swimmingClips.Length)] : goingClips[UnityEngine.Random.Range(0, goingClips.Length)];
                 GoingSource.Play();
+            }
         }
         else GoingSource.Stop();
     }
@@ -86,7 +97,8 @@ public class Moving : StandartMoving
     public override void EnterInWater(int deep)
     {
         base.EnterInWater(deep);
-        GoingSource.clip = goingClip[deep];
+        GoingSource.clip = inWater ? swimmingClips[UnityEngine.Random.Range(0, swimmingClips.Length)] : goingClips[UnityEngine.Random.Range(0, goingClips.Length)];
+        //GoingSource.clip = goingClips[deep];
     }
 
     private void Flip()

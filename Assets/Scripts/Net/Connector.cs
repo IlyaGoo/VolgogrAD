@@ -3,30 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/** Класс, отвечающий на подключение и синхронизацию при подключении, висит на объекте игрока */
 public class Connector : NetworkBehaviourExtension
 {
     [SerializeField] Commands cmd;
 
-    [Command]
-    public void CmdRequestPlayersDatas()
+    public void RequestPlayersData()
     {
-        foreach (var pl in taskManager.PlayersDatas.Values)
+        foreach (var pl in EntitysController.instance.playersData.Values)
         {
-            playerNet.SendSpawnParts(pl.playerObject);
-            cmd.SendEnterInWater(pl.playerObject);
-            playerNet.SendNickname(pl.playerObject);
-            cmd.SendSpawnObjectInHands(pl.playerObject);
-            cmd.SendAnimState(pl.playerObject);
-            cmd.TargetSetVanish(connectionToClient, pl.playerObject, !pl.playerObject.GetComponent<StandartMoving>().vanished);
+            cmd.plNet.SendPlayerData(pl);
+            cmd.plNet.SendSpawnParts(pl.entityObject);
+            cmd.SendEnterInWater(pl.entityObject);
+            cmd.plNet.SendNickname(pl.entityObject);
+            cmd.SendSpawnObjectInHands(pl.entityObject);
+            cmd.SendAnimState(pl.entityObject);
+            cmd.TargetSetVanish(connectionToClient, pl.entityObject, !pl.entityObject.GetComponent<StandartMoving>().vanished);
         }
     }
 
-    [Command]
-    void CmdRequestMobsDatas()
+    void RequestMobsData()
     {
-        foreach(var mob in taskManager._mobManager.mobs)
+        foreach(var mob in mobsManager.mobs)
         {
-            playerNet.SendSpawnParts(mob.gameObject);
+            cmd.plNet.SendSpawnParts(mob.gameObject);
             cmd.SendEnterInWater(mob.gameObject);
             cmd.SendMobData(mob.gameObject);
             cmd.SendSpawnObjectInHands(mob.gameObject);
@@ -35,14 +35,19 @@ public class Connector : NetworkBehaviourExtension
         }
     }
 
-    [Command]
-    void CmdRequestCarsDatas()
+    void RequestCarsData()
     {
         foreach(var car in taskManager.carsAreas)
         {
             foreach(var passager in car.passagers)
             {
-                cmd.TargetAddPassager(connectionToClient, car.transform.parent.gameObject, passager, passager.Equals(car.Driver), taskManager.GetPlayerData(passager).playerObject);
+                cmd.TargetAddPassager(
+                    connectionToClient, 
+                    car.transform.parent.gameObject, 
+                    passager, 
+                    passager.Equals(car.Driver), 
+                    EntitysController.instance.GetPlayerData(passager).entityObject
+                    );
             }
             cmd.ThrowCarState(car.transform.parent.gameObject, car.carComponent.currentState, car.carComponent._animWheels.speed);
             cmd.SetCarCurrentDirection(car.transform.parent.gameObject, car.carComponent.CurrentDirection.x, car.carComponent.CurrentDirection.y);
@@ -51,30 +56,53 @@ public class Connector : NetworkBehaviourExtension
         }
     }
 
-    [Command]
-    void CmdRequestWholes()
+    void RequestWholes()
     {
         foreach (var whole in taskManager.wholes)
         {
-            playerNet.SendWhole(whole.transform.position);
-            playerNet.SendDepth(whole);
+            cmd.plNet.SendWhole(whole.transform.position);
+            cmd.plNet.SendDepth(whole);
         }
     }
 
-    public void RequestAll()
+    void RequestTasks()
     {
-        CmdRequestPlayersDatas();
-        CmdRequestRadio();
-        CmdRequestSleepers();
-        CmdRequestMobsDatas();
-        CmdSetLight();
-        CmdRequestCamps();
-        CmdRequestCarsDatas();
-        CmdRequestWholes();
+        taskManager.Connected();
+        
+        var res = new GameObject[taskManager.taskControllers.Count];
+        var res2 = new int[taskManager.taskControllers.Count];
+        for (var i = 0; i < taskManager.taskControllers.Count; i++)//Стартуем эти контроллеры
+        {
+            var cont = taskManager.taskControllers[i];
+            res[i] = cont.gameObject;
+            res2[i] = cont.currentPlanNumber;
+            cmd.TargetInitTaskController(connectionToClient, cont.gameObject, (int)cont.currentType, cont.needMap, cont.needShowButtons, cont.taskName);
+        }
+        
+        TargetSendTasks(connectionToClient, taskManager.gameTimer, res, res2);//Посылаем информацию обо всех контроллерах
+    }
+    
+    [TargetRpc]
+    public void TargetSendTasks(NetworkConnection target, int time, GameObject[] startedTasks, int[] plans)
+    {
+        taskManager.SetData(time, startedTasks, plans);
     }
 
     [Command]
-    void CmdRequestRadio()
+    public void CmdRequestAll()
+    {
+        RequestPlayersData();
+        RequestRadio();
+        RequestMobsData();
+        RequestSleepers();
+        SetLight();
+        RequestCamps();
+        RequestCarsData();
+        RequestWholes();
+        RequestTasks();
+    }
+
+    void RequestRadio()
     {
         foreach(var radio in FindObjectsOfType<RadioSounder>())
         {
@@ -86,8 +114,7 @@ public class Connector : NetworkBehaviourExtension
         }
     }
 
-    [Command]
-    void CmdRequestSleepers()
+    void RequestSleepers()
     {
         foreach (var sleepArea in FindObjectsOfType<SleepAreaDoing>())
         {
@@ -95,17 +122,10 @@ public class Connector : NetworkBehaviourExtension
             {
                 foreach(var sleeper in sleepArea.sleepers)
                 {
-                    TargetReadyToSkip(connectionToClient, sleepArea.gameObject, taskManager.PlayersDatas[sleeper].HeadNum, sleeper);
+                    cmd.TargetReadyToSkip(connectionToClient, sleepArea.transform.parent.gameObject, sleeper.identity);
                 }
             }
         }
-    }
-
-    [TargetRpc]
-    public void TargetReadyToSkip(NetworkConnection target, GameObject sleepArea, int spriteNum, string sleeper)
-    {
-        var spritesHead = Resources.LoadAll<Sprite>("SpritesForBody/Head" + spriteNum);
-        sleepArea.GetComponentInChildren<SleepAreaDoing>().AddOne(sleeper, spritesHead[3]);
     }
 
     [TargetRpc]
@@ -117,8 +137,7 @@ public class Connector : NetworkBehaviourExtension
         radio.TakeMusic(num, timer);
     }
 
-    [Command]
-    public void CmdSetLight()
+    public void SetLight()
     {
         TargetSendLight(connectionToClient, taskManager.globalLight.intensity, taskManager.currentLightLevel);
     }
@@ -129,8 +148,7 @@ public class Connector : NetworkBehaviourExtension
         taskManager.SetConnectionLight(intensy, secondIntensy);
     }
 
-    [Command]
-    public void CmdRequestCamps()
+    public void RequestCamps()
     {
         foreach (var camp in taskManager.campsAreas)
         {

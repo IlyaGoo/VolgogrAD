@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class PlayerMetaData : MonoBehaviour
 {
@@ -27,7 +28,8 @@ public class PlayerMetaData : MonoBehaviour
     public float SoundLevel = -1;
     public float MusicLevel = -1;
 
-    public bool privateItems = false;
+    /** Включен ли приват впринципе */
+    [FormerlySerializedAs("privateItems")] public bool privateEnable = false;
 
     private PlayerMetaData()
     { }

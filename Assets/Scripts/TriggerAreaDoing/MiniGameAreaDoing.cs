@@ -10,7 +10,7 @@ public class MiniGameAreaDoing : TriggerAreaDoing
         return PlayerThere;
     }
 
-    public override bool Do(GameObject player)
+    public override bool Do()
     {
         GetComponent<MiniGameController>().SpawnMiniGame();
         return true;

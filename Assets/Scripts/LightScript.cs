@@ -36,7 +36,7 @@ public class LightScript : MonoBehaviour {
     {
         var A = GameObject.FindGameObjectWithTag("TaskManager");
         var B = A == null ? null : A.GetComponent<TaskManager>();
-        if (B != null) B.RemoveLightoObject(this);
+        if (B != null) B.RemoveLightObject(this);
     }
 
     void OnEnable()

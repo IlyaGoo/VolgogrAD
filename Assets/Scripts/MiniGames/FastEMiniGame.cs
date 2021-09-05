@@ -43,24 +43,27 @@ public class FastEMiniGame : StandartMinigame
         scale.transform.position = new Vector3(randomPlusPositon + mainScale.position.x, scale.transform.position.y, scale.transform.position.z);
     }
 
-    void FixedUpdate()
+    protected override void AddOnGUI()
     {
-        TimerTick();
-
         if (Input.GetKeyDown(KeyCode.E))
         {
 
             if (negariveScale.transform.position.x >= scale.transform.position.x && negariveScale.transform.position.x <= scale.transform.position.x + scale.transform.localScale.x * width)
             {
-                bar.AddEnergy(-3);
+                localHealthBar.AddEnergy(-3);
                 Finish();
             }
             else
-                bar.AddEnergy(-3);
+                localHealthBar.AddEnergy(-3);
             ChangeScale();
             ChangeScalePosition();
             CheckEndEnergy();
         }
+    }
+
+    void FixedUpdate()
+    {
+        TimerTick();
 
         negativePos += 4 * Time.fixedDeltaTime / (difficulty * 2) * (rightMoving ? 1 : -1);
         negariveScale.transform.position = new Vector3(mainScale.transform.position.x + width * negativePos, negariveScale.transform.position.y, negariveScale.transform.position.z);

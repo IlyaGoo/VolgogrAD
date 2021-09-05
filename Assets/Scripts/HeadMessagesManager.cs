@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HeadMessegesManager : MonoBehaviour
+public class HeadMessagesManager : MonoBehaviour
 {
     [SerializeField] Vector3 offset = new Vector3();
-    public Moving mov;
+    public StandartMoving mov;//Это не обязательно локальный Moving
     [SerializeField] GameObject HeadTextPrefab;
-    public List<HeadMessege> massages = new List<HeadMessege>();
+    public List<HeadMessage> massages = new List<HeadMessage>();
 
     public void AddMessege(string text, bool needDestroyPrevious = true)
     {
@@ -20,11 +20,10 @@ public class HeadMessegesManager : MonoBehaviour
 
         var headText = Instantiate(HeadTextPrefab, transform);
         mov.dontBeReflect.Add(headText);
-        headText.transform.localScale = new Vector3(transform.localScale.x == 1 ? 1 : -1, 1, 1);
+        headText.transform.localScale = new Vector3(transform.localScale.x, 1, 1);
         headText.transform.localPosition = offset;//TODO поднимать сообщения все выше и выше
-        var newTextComponent = headText.GetComponent<HeadMessege>();
+        var newTextComponent = headText.GetComponent<HeadMessage>();
         newTextComponent.SetText(text, this);
         massages.Add(newTextComponent);
-
     }
 }

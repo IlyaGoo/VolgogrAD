@@ -4,21 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class CallMenu : MonoBehaviour, IListener
+public class CallMenu : MonoBehaviourExtension, IListener
 {
+    public static CallMenu instance;
     private bool Pause;
     [SerializeField] private GameObject buttons;
     private bool optionsMenuIsOpenned;
     public NetWorkManager_Custom manager;
-
-    private GameObject player;
-    public GameObject Player { get => player; set 
-        { 
-            player = value;
-            tabListeners = value.GetComponent<ListenersManager>().TabListeners;
-            escListeners = value.GetComponent<ListenersManager>().EscListeners;
-        } 
-    }
     List<IListener> tabListeners;
     List<IListener> escListeners;
 
@@ -27,6 +19,20 @@ public class CallMenu : MonoBehaviour, IListener
     [SerializeField] private GameObject optionsButtons;
 
     [SerializeField] private bool needToStop = false;
+
+    private CallMenu()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    void OnEnable()
+    {
+        tabListeners = localListenersManager.TabListeners;
+        escListeners = localListenersManager.EscListeners;
+    }
 
     void Start()
     {
@@ -63,14 +69,14 @@ public class CallMenu : MonoBehaviour, IListener
 
     public void StartGame()
     {
-        Player.GetComponent<ListenersManager>().TabListeners.Remove(this);
+        tabListeners.Remove(this);
         buttons.SetActive(false);
         Pause = false;
     }
 
     public void RestartGame()
     {
-        Player.transform.position = Vector3.zero;
+        localPlayer.transform.position = Vector3.zero;
         StartGame();
     }
 
@@ -97,7 +103,7 @@ public class CallMenu : MonoBehaviour, IListener
         if (Pause == false)
         {
             buttons.SetActive(true);
-            Player.GetComponent<ListenersManager>().TabListeners.Add(this);
+            tabListeners.Add(this);
             if (needToStop)
                 Time.timeScale = 0;
             Pause = true;

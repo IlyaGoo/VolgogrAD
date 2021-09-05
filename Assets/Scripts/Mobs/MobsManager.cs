@@ -1,19 +1,15 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-public class MobsManager : MonoBehaviour
+public class MobsManager : MonoBehaviourExtension
 {
-
+    public static MobsManager instance;
     public List<MobController> mobs = new List<MobController>();
-    List<MobController> freeMobs;
-    public TaskManager _taskManager;
-    public Algo algoritm;
-    ObjectsScript Constants => _taskManager.objectsScript;
-    public Commands cmd;
-    public PlayerNet playNet;
+    public List<MobController> freeMobs;
     List<TaskLogic> currentTasks = new List<TaskLogic>();
     List<TaskLogic> taskReturns = new List<TaskLogic>();
     bool isServer;
@@ -23,20 +19,37 @@ public class MobsManager : MonoBehaviour
     List<string> maleNames = new List<string>();
     List<string> femaleNames = new List<string>();
 
-    // Use this for initialization
-    void Start() {
-        isServer = _taskManager.isServer;
-        SetMobs();//Потом, когда будем спавнить мобов, возможно, нужно будет вызывать после спавна, а не нас старте
+    private MobsManager()
+    { }
+
+    private void Awake()
+    {
+        instance = this;
         ReadNames();
     }
 
-    public void Init(GameObject player, PlayerNet plNet)
+    public void Init()
     {
-        cmd = player.GetComponent<Commands>();
-        playNet = plNet;
+        isServer = taskManager.isServer;
+        SetMobs();//Потом, когда будем спавнить мобов, возможно, нужно будет вызывать после спавна, а не нас старте
         foreach (var mob in mobs)
         {
-            mob.Init(this);
+            mob.Init();
+        }
+    }
+    
+    public void SendAllBotsToSleep()
+    {
+        foreach(var mob in mobs)
+        {
+            /*if (mob.currentCamp != null && mob.currentCamp.sleepArea != null && !mob.currentCamp.sleepArea.botSleepers.Contains(mob.gameObject) && mob.currentCamp.sleepArea.HaveSpace)
+            {
+                mob.ClearDoings();
+                mob.CurrentPoint = mob.currentCamp.ownPoint;
+                mob.SetAllRenders(false);
+                mob.transform.position = mob.currentCamp.sleepArea.transform.position;
+                mob.AddDoing(new BotSleep(mob.gameObject, 100000, null, mob.ownCamp.ownPoint));
+            }*/
         }
     }
 
@@ -51,9 +64,9 @@ public class MobsManager : MonoBehaviour
         if (maleNames.Count == 0)
             ReadNames();
         if (male)
-            return maleNames[Random.Range(0, maleNames.Count)];
+            return maleNames[UnityEngine.Random.Range(0, maleNames.Count)];
         else
-            return femaleNames[Random.Range(0, femaleNames.Count)];
+            return femaleNames[UnityEngine.Random.Range(0, femaleNames.Count)];
     }
 
     public void SetMobs()
@@ -69,22 +82,92 @@ public class MobsManager : MonoBehaviour
     {
         var newTaskLogic = new TaskLogic(newTask);
 
-        if (!_taskManager.isServer) return newTaskLogic;
+        if (!taskManager.isServer) return newTaskLogic;
 
         currentTasks.Add(newTaskLogic);
-
-        var needCount = newTaskLogic.maxCount;
-        var i = Mathf.Min(needCount,freeMobs.Count);
-        newTaskLogic.AddMobs(TakeFromList(freeMobs, i));
-        needCount -= i;
-        if (needCount == newTaskLogic.maxCount)
-            foreach(var task in taskReturns)
-            {
-                newTaskLogic.AddMobs(TakeFromList(task.taskMobs, Mathf.Min(1, task.taskMobs.Count)));
-            }
+        RefillTasks(newTaskLogic);
         //PrintTasks();
-        taskReturns.Add(newTaskLogic);
+        if (newTask.canReturnMobs) taskReturns.Add(newTaskLogic);
         return newTaskLogic;
+    }
+
+    void RefillTasks(TaskLogic newTask)//Общий перерасчет ботов по таскам
+    {
+        int allreturnableAndFreeBots = freeMobs.Count;
+        int allMaxSum = newTask.maxCount;
+        foreach (var task in taskReturns)
+        {
+            allreturnableAndFreeBots += task.taskMobs.Count;
+            allMaxSum += task.maxCount;
+        }
+
+        foreach (var task in taskReturns)
+        {
+            var needReturn = Mathf.Min(task.taskMobs.Count - 1, (int)(task.taskMobs.Count - (float)task.maxCount / allMaxSum * allreturnableAndFreeBots));
+            if (needReturn <= 0) continue;
+            var returnableMobs = TakeFromList(task.taskMobs, needReturn);
+            freeMobs.AddRange(returnableMobs);
+            foreach (var mob in returnableMobs)
+            {
+                mob.ClearDoings();
+                localCommands.CmdDestroyObjectInHands(mob.gameObject);
+            }
+        }
+
+        foreach (var task in taskReturns)
+        {
+            AddReFillingtask(task, allMaxSum, allreturnableAndFreeBots);
+        }
+
+        AddReFillingtask(newTask, allMaxSum, allreturnableAndFreeBots);
+
+        CheckLastMob(newTask);
+
+    }
+
+    void AddReFillingtask(TaskLogic task, int allMaxSum, int allreturnableAndFreeBots)
+    {
+        var needAdd = Mathf.Max(task.taskMobs.Count == 0 ? 1 : 0, (int)((float)task.maxCount / allMaxSum * allreturnableAndFreeBots - task.taskMobs.Count));
+        if (needAdd <= 0) return;
+        task.AddMobs(TakeFromList(freeMobs, needAdd));
+    }
+
+    void CheckCanFillTasks()//Вызываем когда освободились свободные боты
+    {
+        foreach (var task in currentTasks)
+            if (task.taskMobs.Count == 0 && freeMobs.Count > 0)
+                task.AddMobs(TakeFromList(freeMobs, 1));
+
+        int allNeed = 0;
+        foreach(var task in currentTasks)
+        {
+            allNeed += task.NeedMobsCount;
+        }
+        if (allNeed == 0) return;
+        foreach(var task in currentTasks)
+        {
+            task.AddMobs(TakeFromList(freeMobs, Mathf.Min(task.NeedMobsCount, (int)((float)task.NeedMobsCount / allNeed * freeMobs.Count))));
+        }
+
+        CheckLastMob();
+    }
+
+    void CheckLastMob(TaskLogic newTask = null)
+    {//Бывает, что одного бота мы недораспределяем из-за целочисленного деление
+        if (freeMobs.Count == 1)
+        {
+            if (newTask != null && newTask.NeedMobsCount > 0)
+            {
+                newTask.AddMobs(TakeFromList(freeMobs, 1));
+                return;
+            }
+            foreach (var task in currentTasks)
+                if (task.NeedMobsCount > 0)
+                {
+                    task.AddMobs(TakeFromList(freeMobs, 1));
+                    break;
+                }
+        }
     }
 
     void PrintTasks()
@@ -98,43 +181,52 @@ public class MobsManager : MonoBehaviour
     List<MobController> TakeFromList(List<MobController> list, int count)
     {
         var result = new List<MobController>();
-        for (var i = 0; i < count; i++)
-        {
-            var index = Random.Range(0, list.Count);
-            result.Add(list[index]);
-            list.RemoveAt(index);
-        }
+        if(count > 0)
+            for (var i = 0; i < count; i++)
+            {
+                var index = UnityEngine.Random.Range(0, list.Count);
+                result.Add(list[index]);
+                list.RemoveAt(index);
+                if (list.Count == 0) break;
+            }
         return result;
     }
 
     public void RemoveTask(TaskLogic needRemove)
     {
-        if (!_taskManager.isServer) return;
+        if (!taskManager.isServer) return;
         currentTasks.Remove(needRemove);
         taskReturns.Remove(needRemove);
 
         freeMobs.AddRange(needRemove.taskMobs);
-
-        foreach(var mob in needRemove.taskMobs)
+        if (needRemove.needFreeMobsAfterEnd)
         {
-            mob.currentDoings.Clear();
-            cmd.CmdDestroyObjectInHands(mob.gameObject);
+            foreach (var mob in needRemove.taskMobs)
+            {
+                mob.ClearDoings();
+                localCommands.CmdDestroyObjectInHands(mob.gameObject);
+            }
         }
+        CheckCanFillTasks();//Освободились боты и мы пытаемся отправить их куда-нибудь еще
     }
 }
 
 public class TaskLogic
 {
     public GameObject taskObject;
+    public bool needFreeMobsAfterEnd;//Иногда она сначала должны доделать что-то, например поспать, ни в коем случае в конце не делать botsendend, потому что это зациклит бота
     public bool canReturn = true;
     public int maxCount = 10;
     public List<MobController> taskMobs = new List<MobController>();
     public MiniGameController[] controllers;
     TaskControllerScript _taskController;
-    ObjectsScript Constants => _taskController._mobManager._taskManager.objectsScript;
+    ObjectsScript ObjectsContainer => MonoBehaviourExtension.objectsScript;
+    public int NeedMobsCount => Mathf.Max(0, maxCount - taskMobs.Count);
 
     public TaskLogic(TaskControllerScript controller)
     {
+        needFreeMobsAfterEnd = controller.needFreeMobsAfterEnd;
+        maxCount = controller.needBotsCount;
         _taskController = controller;
         controllers = controller._minigame;
     }
@@ -155,85 +247,186 @@ public class TaskLogic
     public void AddMobs(List<MobController> newMob)
     {
         taskMobs.AddRange(newMob);
-        foreach(var mob in newMob)
+
+        if(_taskController.currentType == TaskType.Diging)//Равномерно распределяем ботов с металлодетекторами
+        {
+            int needMobsWithDet = Mathf.Max(1, newMob.Count / 3);
+            List<BotInstructions> botsWithMetallodetecor = new List<BotInstructions>();//Список ботов с металиком и лопатой одновременно
+            List<BotInstructions> botInstructions = new List<BotInstructions>();//Конечный список инструкций, который кинем в setCurse
+            foreach (var bot in newMob)
+            {
+                var inv = bot.GetComponent<Inventory>();
+                var met = inv.HasInCategory(ItemCategory.MetalDetector);
+                var lop = inv.HasIn("Lopata");
+                if (met != null)
+                {
+                    if (lop == null)//Кидаем в конечный список ботов только с металиком
+                    {
+                        var newInstruction = new BotInstructions(bot)
+                        {
+                            detector = met
+                        };
+                        botInstructions.Add(newInstruction);
+                        needMobsWithDet--;
+                    }
+                    else
+                    {
+                        botsWithMetallodetecor.Add(new BotInstructions(bot)
+                        {
+                            detector = met,
+                            lopata = lop
+                        }
+                        );
+                    }
+                }
+                else //if (lop != null)//Кидаем в конечный список ботов только с лопатой
+                {
+                    var newInstruction = new BotInstructions(bot)
+                    {
+                        lopata = lop
+                    };
+                    botInstructions.Add(newInstruction);
+                }
+            }
+
+            while(needMobsWithDet > 0 && botsWithMetallodetecor.Count > 0)//Нужно оптимизировать и складывать ботов сразу в порядке возрастания качества металика
+            {
+                needMobsWithDet--;
+                BotInstructions botWithBestDet = botsWithMetallodetecor[0];
+                foreach(var bot in botsWithMetallodetecor)//Ищем лучший металлодетектор
+                {
+                    if(bot.detector.itemQality > botWithBestDet.detector.itemQality)
+                    {
+                        botWithBestDet = bot;
+                    }
+                }
+                botInstructions.Add(botWithBestDet);
+                botsWithMetallodetecor.Remove(botWithBestDet);
+            }
+            foreach(var lopBot in botsWithMetallodetecor)//У оставшихся убираем металик, пусть ходят только с лопатой
+            {
+                lopBot.detector = null;
+                botInstructions.Add(lopBot);
+            }
+
+            foreach (var instruction in botInstructions)
+            {
+                SetMobCurse(instruction.cont, instruction);
+            }
+        }
+
+        else foreach(var mob in newMob)
         {
             //mob.SetCurse();
             SetMobCurse(mob);
         }
     }
 
-    public void SetMobCurse(MobController con)
+    public class BotInstructions
+    {
+        public BotInstructions(MobController contr)
+        {
+            cont = contr;
+        }
+
+        public MobController cont = null;
+        public ItemData detector = null;
+        public ItemData lopata = null;
+    }
+
+    public void SetMobCurse(MobController con, BotInstructions instructions = null)
     {
         switch (_taskController.currentType)
         {
             case TaskType.Coocking:
-                con.currentDoings.Clear();
-                con.currentDoings.AddRange(con.SetCurse(controllers[Random.Range(0, controllers.Length)].ownPoint));
+                con.ClearDoings();
+                con.doingNow = BotDoingCategory.Coocking;
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
 
-                if (Random.Range(0, 2) == 0)
-                    con.currentDoings.Add(new BotWaiting(con.gameObject, Random.Range(20, 100), con._commands, Random.Range(0, 2) == 0, con.currentDoings[con.currentDoings.Count - 1].needPoint));
-                con.currentDoings.Add(new BotSendEnd(con, this, con.currentDoings[con.currentDoings.Count - 1].needPoint));
+                if (UnityEngine.Random.Range(0, 2) == 0)
+                    con.AddDoing(new BotWaiting(con.gameObject, UnityEngine.Random.Range(20, 100), UnityEngine.Random.Range(0, 2) == 0 ? new string[1] { "Doing" } : null, con.GetEndPoint()));
+                con.AddDoing(new BotSendEnd(con, this, con.GetEndPoint()));
+                break;
+            case TaskType.Sleeping:
+                con.ClearDoings();
+                con.doingNow = BotDoingCategory.Sleeping;
+                if (con.ownCamp != null)
+                {
+                    con.AddDoings(con.SetCurse(con.currentCamp.ownPoint));
+                    con.AddDoing(new BotGoing(con, con.currentCamp.sleepArea.transform.position, con.currentCamp.ownPoint));
+                    con.AddDoing(new BotSleep(con.gameObject, 100000, null, con.currentCamp.ownPoint));
+                }
+                else
+                    MonoBehaviourExtension.localCommands.CmdAddBotMessege(con.gameObject, con.GetCantSleepMessage(), true);
                 break;
             case TaskType.Standing:
-                con.currentDoings.Clear();
-                con.currentDoings.AddRange(con.SetCurse(controllers[Random.Range(0, controllers.Length)].ownPoint));
+                if (con.oldLevel > 5) break;//Если моб достаточно олд, то он ебет в рот ваше построение
+                con.ClearDoings();
+                con.doingNow = BotDoingCategory.Postr;
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
 
                 var pos = _taskController.GetComponent<PostrController>().AddOne();
-                ((BotGoing)con.currentDoings[con.currentDoings.Count - 1]).SetPos(pos);
+                ((BotGoing)con.GetLastDoing()).SetPos(pos);
 
-
-                var wait = new BotWaiting(con.gameObject, 100000, con._commands, false, con.currentDoings[con.currentDoings.Count - 1].needPoint, 1, 0);
-                wait.needPos = pos;
-                con.currentDoings.Add(wait);
-                con.currentDoings.Add(new BotSendEnd(con, this, con.currentDoings[con.currentDoings.Count - 1].needPoint));
+                var wait = new BotWaiting(con.gameObject, 100000, null, con.GetEndPoint(), 1, 0)
+                {
+                    needPos = pos
+                };
+                con.AddDoing(wait);
+                con.AddDoing(new BotSendEnd(con, this, con.GetEndPoint()));
                 break;
             case TaskType.Diging:
-                con.currentDoings.Clear();
-                con.currentDoings.AddRange(con.SetCurse(controllers[Random.Range(0, controllers.Length)].ownPoint));
-
-                var size = controllers[0].size;
-                var offset = controllers[0].offset;
-                var y1 = controllers[0].transform.position.y - size.y / 2 + offset.y;
-                var y2 = controllers[0].transform.position.y + size.y / 2 - offset.y;
-                var p1 = new Vector3(controllers[0].transform.position.x - size.x/2 + offset.x, y1, y1);
-                var p2 = new Vector3(controllers[0].transform.position.x + size.x / 2 - offset.x, y2, y2);
-
+                con.ClearDoings();
+                con.doingNow = BotDoingCategory.Digging;
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
                 ItemData lop = null;
-                List<string> inHandsPrefabs = null;
-                string detector = null;
-                var inHands = con.GetComponent<Inventory>().HasIn("Ramka");
-                if (inHands == null)
+                List<string> inHandsNames = null;
+                string detectorName = null;//Нужно чтобы потом если что поменять положение в руках
+                if (instructions == null)//Если нет инструкции, то просто берем все самое лучшее, что у нас есть
                 {
-                    inHands = con.GetComponent<Inventory>().HasIn("TM808");
-                    if (inHands == null)
-                        inHands = con.GetComponent<Inventory>().HasIn("XTerra505");
-                }
-                if (inHands != null)
-                {
-                    inHandsPrefabs = new List<string>(inHands.inHandsPrefab);
-                    if (inHandsPrefabs[1].Equals("ramkaInHands"))
-                        inHandsPrefabs[1] = "ramkaBotsInHands";
-                    lop = con.GetComponent<Inventory>().HasIn("Lopata");
-                    if (lop != null)
+                    var detectorData = con.GetComponent<Inventory>().HasInCategory(ItemCategory.MetalDetector);
+                    if (detectorData != null)
                     {
-                        detector = inHandsPrefabs[1];
-                        inHandsPrefabs.AddRange(lop.inHandsPrefab);
+                        inHandsNames = new List<string>(detectorData.GetMobsInHands());
+                        if (!detectorData.twoHanded)
+                        {
+                            lop = con.GetComponent<Inventory>().HasIn("Lopata");
+                            if (lop != null)
+                            {
+                                detectorName = inHandsNames[1];
+                                inHandsNames.AddRange(lop.inHandsPrefab);
+                            }
+                        }
+                    }
+                    else if ((detectorData = con.GetComponent<Inventory>().HasIn("Lopata")) != null)
+                    {
+                        inHandsNames = new List<string>(detectorData.inHandsPrefab);
                     }
                 }
-                else if ((inHands = con.GetComponent<Inventory>().HasIn("Lopata")) != null)
+                else
                 {
-                    inHandsPrefabs = new List<string>(inHands.inHandsPrefab);
+                    inHandsNames = new List<string>();
+                    lop = instructions.lopata;
+                    if (instructions.detector!= null)
+                        detectorName = instructions.detector.inHandsPrefab[1];
+                    if (instructions.detector != null)
+                    {
+                        inHandsNames.AddRange(instructions.detector.GetMobsInHands());
+                        if (instructions.detector.twoHanded)
+                            lop = null;
+                    }
+                    if (lop != null)
+                    {
+                        inHandsNames.AddRange(lop.inHandsPrefab);
+                    }
                 }
-
-                //string[] inHands = taskMobs.IndexOf(con) == 0 ? new string[2] { "FindCircle1", "GarretInHands" } : taskMobs.IndexOf(con) == 1 ? new string[2] { "FindCircle3", "TM808InHands" } : null;
-                var needPoint = con.currentDoings[con.currentDoings.Count - 1].needPoint;
-                con.currentDoings.Add(new BotGoingInZone(con, needPoint.transform.position, needPoint, Constants, p1, p2, inHandsPrefabs?.ToArray()));
-                //new BotGoing(this, p.transform.position +new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), a, a / 100), p, Constants)
-                if (lop != null)
+                var needPoint = con.GetEndPoint();
+                con.AddDoing(new BotGoingInZone(con, needPoint.transform.position, needPoint, _taskController.GetComponent<DiggingController>().GetPoints(), inHandsNames?.ToArray()));
+                if (lop != null && detectorName != null)
                 {
-                    con._commands.CmdChangeInHandsPosition(con.gameObject, detector, true);
+                    MonoBehaviourExtension.localCommands.CmdChangeInHandsPosition(con.gameObject, detectorName, true);
                 }
-                con.currentDoings.Add(new BotSendEnd(con, this, con.currentDoings[con.currentDoings.Count - 1].needPoint));
+                con.AddDoing(new BotSendEnd(con, this, con.GetEndPoint()));
                 break;
         }
     }

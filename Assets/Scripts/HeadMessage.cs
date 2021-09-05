@@ -4,31 +4,31 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class HeadMessege : MonoBehaviour
+public class HeadMessage : MonoBehaviour
 {
     float needTime = 4;
-    float currentTimer = 4;
-    HeadMessegesManager manager;
+    float currentTimer = 0;
+    HeadMessagesManager currentManager;
     [SerializeField] TextMeshPro textMesh;
 
-    public void SetText(string text, HeadMessegesManager currentManager)
+    public void SetText(string text, HeadMessagesManager newManager)
     {
-        manager = currentManager;
+        currentManager = newManager;
         textMesh.text = text;
     }
 
     void Update()
     {
-        needTime -= Time.deltaTime;
-        if (needTime <= 0)
+        currentTimer += Time.deltaTime;
+        if (currentTimer >= needTime)
             Close();
     }
 
     public void Close(bool needRemove = true)
     {
-        manager.mov.dontBeReflect.Remove(gameObject);
+        currentManager.mov.dontBeReflect.Remove(gameObject);
         if (needRemove)
-            manager.massages.Remove(this);
+            currentManager.massages.Remove(this);
         Destroy(gameObject);
     }
 }

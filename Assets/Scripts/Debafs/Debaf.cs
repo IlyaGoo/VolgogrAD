@@ -4,10 +4,11 @@ using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public class Debaf : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    public string nm;
+    [FormerlySerializedAs("nm")] public string debafName;
     public string description;
     public GameObject player;
     [SerializeField] BafType bafType;

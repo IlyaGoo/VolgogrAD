@@ -7,8 +7,8 @@ using UnityEngine.EventSystems;
 public class Circle : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
 
-    public int number;
-    public string text;
+    public TaskPoint taskPoint;
+    string text => taskPoint.pointData.name;
     [SerializeField] GameObject textPrefab;
     private GameObject textObject;
 
@@ -23,7 +23,6 @@ public class Circle : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         {
             textObject.SetActive(true);
         }
-        //but.colors = neww;
     }
 
     public void OnPointerExit(PointerEventData eventData)

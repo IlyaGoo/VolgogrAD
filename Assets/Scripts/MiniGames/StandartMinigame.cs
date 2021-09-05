@@ -7,12 +7,10 @@ public class StandartMinigame : Minigame
 {
     [SerializeField] protected float minusEnergyDelay = 0.7f;
     protected float minusEnergyTimer;
-    protected HealthBar bar;
 
-    public void Init(HealthBar newBar)
+    public void Init()
     {
         minusEnergyTimer = minusEnergyDelay;
-        bar = newBar;
     }
 
     protected virtual KeyCode[] GetUsingKeyKodes()
@@ -26,19 +24,22 @@ public class StandartMinigame : Minigame
         if (minusEnergyTimer <= 0)
         {
             minusEnergyTimer = minusEnergyDelay;
-            bar.AddEnergy(-1);
+            localHealthBar.AddEnergy(-1);
             CheckEndEnergy();
         }
     }
 
     protected void CheckEndEnergy()
     {
-        if (bar.Energy < 1)
+        if (localHealthBar.Energy < 1)
         {
             _controller.ReinitializeTrigger();
             _controller.PreEndGame();
         }
     }
+    
+    /**Дополнительные действия при ивентах нажатия кнопок, например в QEMinigame нажате Q или E**/
+    protected virtual void AddOnGUI(){}
 
     void OnGUI()
     {
@@ -49,6 +50,10 @@ public class StandartMinigame : Minigame
             {
                 _controller.ReinitializeTrigger();
                 _controller.PreEndGame();
+            }
+            else
+            {
+                AddOnGUI();
             }
         }
         else if (Event.current.isScrollWheel)

@@ -24,7 +24,6 @@ public class Cell {
     public void SetTarget(bool state, bool freeze = false, bool force = false)
     {
         Object.GetComponent<HoverCell>().SetTarget(state, freeze, force);
-
     }
 
     public void Clear()
@@ -115,7 +114,7 @@ public class Cell {
     {
         Amount -= count;
         var currentHover = Object.GetComponent<HoverCell>();
-        currentHover.invObj.playNet.cmd.CmdPlaySound(1);
+        MonoBehaviourExtension.localCommands.CmdPlaySound(1);
         if (Amount < 1)
         {
             

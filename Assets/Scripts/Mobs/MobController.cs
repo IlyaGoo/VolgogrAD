@@ -3,26 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 using System;
+using System.Linq;
 
 public class MobController : StandartMoving, IAltLabelShower
 {
+    static readonly string[] cantSleepMessages = new string[] { "Ну и где мне спать?",
+        "И куда мне лечь?", "Походу сегодня я сплю в пищевой палатке..." };
+
+    public BotDoingCategory doingNow = BotDoingCategory.Nothing;
+    public bool smoking = false;
+    public Camp ownCamp = null;
+    public Camp currentCamp = null;
     readonly int[] mealHeadNums = new int[] { 3, 4, 5 };
     readonly int[] femealHeadNums = new int[] { 6, 7, 8, 9 };
     readonly int[] bodyNums = new int[] { 1, 3, 4 };
     readonly int[] lagsdNums = new int[] { 0, 1 };
     public bool male;
     public string mobName = "";
-    public override PlayerNet PlNet() => manager.playNet;
     protected override bool DigIsLocal() => false;
     protected override bool FindIsController() => isServer;
 
     public Point CurrentPoint;
     List<Point> path = new List<Point>();
-    Algo Algoritm;
-    public Commands _commands;
-    ObjectsScript constants;
-
-    public List<BotDoing> currentDoings = new List<BotDoing>();
+    public readonly List<BotDoing> currentDoings = new List<BotDoing>();
 
     public int x = -1;
     public int y = -1;
@@ -56,37 +59,36 @@ public class MobController : StandartMoving, IAltLabelShower
         }
     }
 
-    MobsManager manager;
-
     public void SetData(bool newMale, string newName)
     {
         mobName = newName;
         male = newMale;
     }
 
+    public string GetCantSleepMessage()
+    {
+        return cantSleepMessages[UnityEngine.Random.Range(0, cantSleepMessages.Length)];
+    }
+
     // Use this for initialization
-    public void Init(MobsManager man) {
+    public void Init() {
+        currentCamp = ownCamp;
         GetComponent<InventoryData>().Init();
         GetComponent<Inventory>().InitCells();
-        manager = man;
-        _commands = manager.cmd;
-        constants = manager._taskManager.objectsScript;
+        EntitysController.instance.CreateBotData(GetComponent<NetworkIdentity>().netId.ToString(), gameObject);
         if (!isServer)
         {
             return;
         }
-
         if (mobName == "")
         {
             male = UnityEngine.Random.Range(0, 2) == 0;
-            mobName = manager.GetRandomName(male);
+            mobName = mobsManager.GetRandomName(male);
         }
 
         var trigger = GetComponentInChildren<CircleTrigger>();
-        trigger.cmd = _commands;
         trigger.isController = true;
 
-        Algoritm = manager.algoritm;
         if (x == -1)
             if (male)
             {
@@ -105,20 +107,20 @@ public class MobController : StandartMoving, IAltLabelShower
             var r = UnityEngine.Random.Range(0, 8);
             if (r == 0)
             {
-                _commands.CmdObjectTakeItemName("TM808", 1, gameObject);
+                localCommands.CmdObjectTakeItemName("TM808", 1, gameObject);
             }
             else if (r == 1)
             {
-                _commands.CmdObjectTakeItemName("XTerra505", 1, gameObject);
+                localCommands.CmdObjectTakeItemName("XTerra505", 1, gameObject);
             }
 
             if (UnityEngine.Random.Range(0, 8) < 4)
-                _commands.CmdObjectTakeItemName("Lopata", 1, gameObject);
+                localCommands.CmdObjectTakeItemName("Lopata", 1, gameObject);
         }
         else
         {
             foreach (var item in startObjectsInInventory)
-                _commands.CmdObjectTakeItemName(item, 1, gameObject);
+                localCommands.CmdObjectTakeItemName(item, 1, gameObject);
         }
     }
 
@@ -133,14 +135,23 @@ public class MobController : StandartMoving, IAltLabelShower
 
     void SetRandomPoint()
     {
-        Point randomPoint = Algoritm.points[UnityEngine.Random.Range(0, Algoritm.points.Count)];
-        path = Algoritm.FindShortestPath(CurrentPoint.number, randomPoint.number);
+        Point randomPoint = algo.points[UnityEngine.Random.Range(0, algo.points.Count)];
+        path = algo.FindShortestPath(CurrentPoint.number, randomPoint.number);
 
-        currentDoings.Clear();
+        ClearDoings();
         foreach (var p in path)
         {
             var a = UnityEngine.Random.Range(-0.4f, 0.4f);
-            currentDoings.Add(new BotGoing(this, p.transform.position + new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), a, a / 100), p, constants));
+            AddDoing(new BotGoing(this, p.transform.position + new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), a, a / 100), p));
+        }
+
+        if (randomPoint.botsCanStay)
+        {
+            if(true)//UnityEngine.Random.Range(0, 5) == 1)
+            {
+                    //TODO курить
+                AddDoing(new BotWaitingDialogue(gameObject, 20, null, randomPoint));
+            }
         }
 
         //var a = Random.Range(-0.4f, 0.4f);
@@ -155,22 +166,20 @@ public class MobController : StandartMoving, IAltLabelShower
 
     public List<BotDoing> SetCurse(Point cursePoint)
     {
-        _commands.CmdDestroyObjectInHands(gameObject);
-        path = Algoritm.FindShortestPath(CurrentPoint.number, cursePoint.number);
+        localCommands.CmdDestroyObjectInHands(gameObject);
+        path = algo.FindShortestPath(CurrentPoint.number, cursePoint.number);
 
         var res = new List<BotDoing>();
         foreach (var p in path)
         {
             var a = UnityEngine.Random.Range(-0.4f, 0.4f);
-            res.Add(new BotGoing(this, p.transform.position + new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), a, a / 100), p, constants));
+            res.Add(new BotGoing(this, p.transform.position + new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), a, a / 100), p));
         }
         return res;
-
-
     }
 
     void FixedUpdate() {
-        if (!isServer || _commands == null || stacked) return;
+        if (!isServer || localCommands == null || stacked) return;
 
         if (currentDoings.Count > 0)
         {
@@ -180,34 +189,132 @@ public class MobController : StandartMoving, IAltLabelShower
                 currentDoings.RemoveAt(0);
             }
         }
-        else SetRandomPoint();
-	}    
+        else
+        {
+            doingNow = BotDoingCategory.Nothing;
+            /*            if (!mobsManager.freeMobs.Contains(this))
+                            mobsManager.freeMobs.Add(this);*/
+            SetRandomPoint();
+        }
+	}  
+    
+    public void AddDoing(BotDoing newDoing)
+    {
+        currentDoings.Add(newDoing);
+    }
+
+    public void AddDoings(List<BotDoing> newDoing)
+    {
+        currentDoings.AddRange(newDoing);
+    }
+
+    public void ClearDoings()
+    {
+        if (currentDoings.Count == 0) return;
+        currentDoings[0].ForceExit();
+        List<BotDoing> needRemove = new List<BotDoing>();
+        foreach(var doing in currentDoings)
+        {
+            if (doing.canHustEnd)
+                needRemove.Add(doing);
+        }
+        foreach(var remove in needRemove)
+            currentDoings.Remove(remove);
+    }
+
+    public Point GetEndPoint()
+    {
+        return GetLastDoing().needPoint;
+    }
+
+    public BotDoing GetLastDoing()
+    {
+        return currentDoings[currentDoings.Count - 1];
+    }
 }
 
 abstract public class BotDoing
 {
     abstract public bool Do(float deltaTime);
+    abstract public void ForceExit();
     public Point needPoint;
+    public bool canHustEnd = true;//Можем ли мы просто прервать задание, если false, то бот обязательно доделает это действие
+    //В будущем планирую исползовать, например, при переноске дров, типа пусть бот сначала их донесет
 }
 
-public class BotGoing : BotDoing
+public class BotMultyDoing : BotDoing//Doing с множеством других doing, когда группу дел нужно рассматривать только в совокупности
+{
+    readonly MobController botObject;
+    TaskLogic ownLogic;
+    List<BotDoing> doings = new List<BotDoing>();
+    List<BotDoing> exitDoings = new List<BotDoing>();
+
+    public BotMultyDoing(MobController bot, TaskLogic logic, Point point)
+    {
+        botObject = bot;
+        ownLogic = logic;
+        needPoint = point;
+    }
+
+    public override bool Do(float deltaTime)
+    {
+        if (doings.Count > 0)
+        {
+            if (doings[0].Do(Time.fixedDeltaTime))
+            {
+                botObject.SetPoint(doings[0].needPoint);
+                doings.RemoveAt(0);
+                if (doings.Count == 0)
+                    return true;
+                else
+                    return false;
+            }
+            else return false;
+        }
+        else
+            return false;
+    }
+
+    public void AddDoing(BotDoing newDoing, bool needExit)
+    {
+        doings.Add(newDoing);
+        if (needExit)
+            exitDoings.Add(newDoing);
+    }
+
+    public override void ForceExit()
+    {
+        if (doings.Count > 0)
+        {
+            doings[0].ForceExit();
+            exitDoings.Remove(doings[0]);
+        }
+        foreach (var doing in exitDoings)
+            doing.ForceExit();
+    }
+}
+
+public class BotGoing : BotDoing//Бот как огромный мясной локомотив хуярит к определенному point-у, а точнее точке возле него
 {
     protected MobController botObject;
     protected Vector3 needPosition;
     protected float distance = 0.1f;
-    protected float speed = 3;
-    protected Commands _commands;
-    protected ObjectsScript constants;
-    protected float shiftMultiplayer = 0.47f;
-    protected bool isNowShifted = false;
+    protected Commands _commands => MonoBehaviourExtension.localCommands;
+    protected ObjectsScript objectsScripts => MonoBehaviourExtension.objectsScript;
+    protected bool inited = false;
+    protected bool isShifting = false;
 
-    public BotGoing(MobController bot, Vector3 pos, Point point, ObjectsScript con)
+    public BotGoing(MobController bot, Vector3 pos, Point point)
     {
         botObject = bot;
+        if (bot.isShifted)
+        {
+            if (bot.currentShiftMultiplayer != null) bot.RemoveSpeedMultiplayer(bot.currentShiftMultiplayer);
+            bot.currentShiftMultiplayer = null;
+        }
+        bot.isShifted = false;
         needPosition = pos;
-        _commands = bot._commands;
         needPoint = point;
-        constants = con;
     }
 
     public void SetPos(Vector3 needPos)
@@ -220,13 +327,20 @@ public class BotGoing : BotDoing
         return true;
     }
 
+    protected virtual void Init()
+    {}
+
     public override bool Do(float deltaTime)
     {
+        if (!inited)
+        {
+            Init();
+        }
         Vector3 delta = needPosition - botObject.transform.position;
         if (delta.magnitude > distance)
         {
             delta.Normalize();
-            float moveSpeed = speed * deltaTime * constants.botSpeedMultiplayer * shiftMultiplayer;
+            float moveSpeed = botObject.maxSpeed * deltaTime * objectsScripts.botSpeedMultiplayer * botObject.currentSpeedMultiplayer;
             botObject.transform.position = botObject.transform.position + (delta * moveSpeed);
 
             if (delta.x > 0)
@@ -240,7 +354,7 @@ public class BotGoing : BotDoing
             if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y)) y = 0;
             else x = 0;
 
-            _commands.CmdSetMobAnimation(botObject.gameObject, x, y, shiftMultiplayer, isNowShifted);
+            _commands.CmdSetMobAnimation(botObject.gameObject, x, y, botObject.currentSpeedMultiplayer * botObject.maxSpeed / botObject.normalSpeedForAnimation, isShifting);
             return false;
         }
         else
@@ -248,29 +362,80 @@ public class BotGoing : BotDoing
             return EndGoing();
         }
     }
+
+    public override void ForceExit()
+    {
+    }
 }
 
-public class BotWaiting : BotDoing
+public class BotWaitingDialogue : BotWaiting//Бот стоит на точке и ждет разговора с кем-нибудь
 {
-    readonly GameObject botObject;
-    Commands cmd;
-    float needTime;
-    bool animated;
-    bool inited;
+    public BotWaitingDialogue(GameObject bot, float stayTime, string[] needAnimation, Point point, int x = -2, int y = -2):
+        base(bot, stayTime, needAnimation, point, x , y)
+    {
+    }
+
+    protected override void Init()
+    {
+        base.Init();
+        needPoint.AddStayMob(botObject.GetComponent<MobController>());
+    }
+
+    public override bool Do(float deltaTime)
+    {
+        var res = base.Do(deltaTime);
+        if (res) needPoint.RemoveStayMob(botObject.GetComponent<MobController>());
+        return res;
+    }
+
+    public override void ForceExit()
+    {
+        base.ForceExit();
+        needPoint.RemoveStayMob(botObject.GetComponent<MobController>());
+    }
+}
+
+public class BotWaiting : BotDoing//Бот чилово стоит у точки, возможно держит что-то в руках
+{
+    protected readonly GameObject botObject;
+    protected Commands localCommands => MonoBehaviourExtension.localCommands;
+    public float needTime;
+    string[] animated = null;
+    protected bool inited;
 
     int needx;
     int needy;
     public Vector3 needPos = Vector3.zero;
 
-    public BotWaiting(GameObject bot, float stayTime, Commands com, bool needAnimation, Point point, int x = -2, int y = -2)
+    public BotWaiting(GameObject bot, float stayTime, string[] needAnimation, Point point, int x = -2, int y = -2)
     {
         botObject = bot;
         needTime = stayTime;
-        cmd = com;
         animated = needAnimation;
         needPoint = point;
         needx = x;
         needy = y;
+    }
+
+    public void SetTimer(float newValue, bool max = false)
+    {
+        if (max)
+            needTime = Math.Max(needTime, newValue);
+        else
+            needTime = newValue;
+    }
+
+    protected virtual void Init()
+    {
+        inited = true;
+        if (animated != null)
+            localCommands.CmdSpawnObjectInHands(botObject, animated);
+        if (needx != -2)
+        {
+            localCommands.CmdSetMobAnimation(botObject, needx, needy, 0.6f, false);
+            if (needx != 0)
+                botObject.GetComponent<MobController>().ChangeScale(needx);
+        }
     }
 
     public override bool Do(float deltaTime)
@@ -280,31 +445,31 @@ public class BotWaiting : BotDoing
 
         if (!inited)
         {
-            inited = true;
-            if (animated)
-                cmd.CmdSpawnObjectInHands(botObject, new string[1] { "Doing" });
-            if (needx != -2)
-            {
-                cmd.CmdSetMobAnimation(botObject, needx, needy, 0.6f, false);
-                if (needx != 0)
-                    botObject.GetComponent<MobController>().ChangeScale(needx);
-            }
+            Init();
         }
         else
-            cmd.CmdSetMobAnimation(botObject, 0, 0, 0.6f, false);
+            localCommands.CmdSetMobAnimation(botObject, 0, 0, 0.6f, false);
         needTime -= deltaTime;
 
-        if (needTime <= 0)
+        if (IsEnd())
         {
-            if (animated)
-                cmd.CmdDestroyObjectInHands(botObject);
+            if (animated != null)
+                localCommands.CmdDestroyObjectInHands(botObject);
             return true;
         }
         return false;
     }
+
+    protected virtual bool IsEnd() => needTime <= 0;
+
+    public override void ForceExit()
+    {
+        if (animated != null)
+            localCommands.CmdDestroyObjectInHands(botObject);
+    }
 }
 
-public class BotSendEnd : BotDoing
+public class BotSendEnd : BotDoing//Бот говорит, я все сделал и хочу новое задание (на самом деле не хочет, и мы его заставляем)
 {
     readonly MobController botObject;
     TaskLogic ownLogic;
@@ -321,20 +486,72 @@ public class BotSendEnd : BotDoing
         ownLogic.SetMobCurse(botObject);
         return false;
     }
+
+    public override void ForceExit()
+    {
+    }
 }
 
-public class BotGoingInZone : BotGoing
+public class BotSleep : BotWaiting//Бот идет баиньки(наверно)
+{
+    TaskManager taskManager => MonoBehaviourExtension.taskManager;
+
+    public BotSleep(GameObject bot, float stayTime, string[] needAnimation, Point point, int x = -2, int y = -2)
+         : base(bot, stayTime, needAnimation, point, x, y)
+    {
+    }
+
+    protected override void Init()
+    {
+        inited = true;
+        var controller = botObject.GetComponent<MobController>();
+        if (!controller.currentCamp.sleepArea.HaveSpace)
+        {
+            localCommands.CmdAddBotMessege(botObject, controller.GetCantSleepMessage(), true);
+            needTime = 0;
+        }
+        else
+            localCommands.CmdBotGoSleep(controller.GetId(), controller.currentCamp.gameObject);
+        //controller.ownCamp.sleepArea.AddOneBot(botObject.gameObject);
+        //controller.Panel = null;
+    }
+
+    public override void ForceExit()
+    {
+        var controller = botObject.GetComponent<MobController>();
+        localCommands.CmdBotWakeUp(controller.GetId(), botObject.GetComponent<MobController>().currentCamp.gameObject);
+    }
+
+    protected override bool IsEnd()
+    {
+        var res = base.IsEnd() || taskManager.gameTimer >= 421;
+        if (res) ForceExit();
+        return res;
+    }
+
+}
+
+public class BotGoingInZone : BotGoing//Бот чилово гуляет в зоне, возможно держит что-то в руках
 {
     Vector3 point1;
     Vector3 point2;
 
-    public BotGoingInZone(MobController bot, Vector3 pos, Point point, ObjectsScript con, Vector3 p1, Vector3 p2, string[] objectName = null)
-        : base(bot, pos, point, con)
+    protected override void Init()
     {
-        isNowShifted = true;
-        shiftMultiplayer = 0.35f;
-        point1 = p1;
-        point2 = p2;
+        if (!botObject.isShifted)
+        {
+            if (botObject.currentShiftMultiplayer != null) botObject.RemoveSpeedMultiplayer(botObject.currentShiftMultiplayer);
+            botObject.currentShiftMultiplayer = botObject.AddSpeedMultiplayer(botObject.GetShiftMultiplayer());
+        }
+        //botObject.isShifted = true; //Так нельзя делать, потому что не включится металлодетектор, кидаем true в Do
+        isShifting = true;
+    }
+
+    public BotGoingInZone(MobController bot, Vector3 pos, Point point, (Vector3, Vector3) points, string[] objectName = null)
+        : base(bot, pos, point)
+    {
+        point1 = points.Item1;
+        point2 = points.Item2;
         SetRandomPoint();
 
         if (objectName != null)
@@ -354,4 +571,14 @@ public class BotGoingInZone : BotGoing
         SetRandomPoint();
         return false;
     }
+}
+
+public enum BotDoingCategory//Чтобы понимать что бот вообще сейчас делает
+{
+    Sleeping,
+    Nothing,
+    Dialogue,
+    Digging,
+    Coocking,
+    Postr
 }
