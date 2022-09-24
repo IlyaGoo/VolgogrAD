@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4371453580795424}
   - component: {fileID: 61027964366683656}
+  - component: {fileID: 2312847251916469673}
   - component: {fileID: 114068585806966064}
   - component: {fileID: 1356953006473386573}
-  - component: {fileID: 2312847251916469673}
   m_Layer: 0
   m_Name: Digger
   m_TagString: TriggerArea
@@ -61,6 +61,35 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
+--- !u!114 &2312847251916469673
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1760117985438100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb009912e7b001d418b897c6bde51e42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncMode: 0
+  syncInterval: 0.1
+  taskType: 1
+  needFreeMobsAfterEnd: 0
+  needBotsCount: 10
+  canReturnMobs: 1
+  currentMenu: {fileID: 0}
+  taskName: 
+  _minigame:
+  - {fileID: 6177401664184192727}
+  currentMinigames: 
+  isOn: 0
+  currentPlanNumber: 0
+  needMap: 0
+  needShowButtons: 0
+  miniGameControllerPrefab: {fileID: 1972992640237982, guid: 2e0977385bc62d24fb826df4cf6e45d7,
+    type: 3}
 --- !u!114 &114068585806966064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -97,35 +126,6 @@ MonoBehaviour:
   serverOnly: 0
   m_AssetId: 
   hasSpawned: 0
---- !u!114 &2312847251916469673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1760117985438100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb009912e7b001d418b897c6bde51e42, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
-  needFreeMobsAfterEnd: 0
-  needBotsCount: 10
-  canReturnMobs: 1
-  menuScript: {fileID: 0}
-  currentMenu: {fileID: 0}
-  inStages: 
-  taskName: 
-  _minigame:
-  - {fileID: 6177401664184192727}
-  current_minigames: 
-  isOn: 0
-  currentPlanNumber: 0
-  needMap: 0
-  needShowButtons: 0
-  currentType: 0
 --- !u!1 &1821922508286696
 GameObject:
   m_ObjectHideFlags: 0
@@ -197,9 +197,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   needChangeCollider: 1
-  startNumber: 0
   ownButton: {fileID: 0}
-  ownPoint: {fileID: 0}
+  currentCampObject: {fileID: 0}
   needCount: 3
   currentCount: 0
   ready: 0

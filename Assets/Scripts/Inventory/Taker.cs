@@ -3,35 +3,25 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
+/** Скрипт взаимодействия с окружающим миров
+Позволяет брать предметы, входить в идалоги, начинать миниигры
+ */
 public class Taker : MonoBehaviourExtension, IListener
 {
-    public Commands cmd;
-    public InventoryController InventoryRef;
+    [SerializeField] Commands cmd;
     [SerializeField] GameObject player = null;
-
-    public Skiper skiper;
-    public PlayerNet playNet;
-    public Moving movingScript;
-
     public GameObject currentAreaDoing;
-
-    public TakerDoing current_can = TakerDoing.Empty;
-    public bool isLocal = false;
-
+    public TakerDoing currentDoingType = TakerDoing.Empty;
     public List<GameObject> inTriggerObjects = new List<GameObject>();
 
     public void Init() {
         localListenersManager.SpaceListeners.Add(this);
-        isLocal = true;
     }
 
     void OnTriggerEnter2D(Collider2D col)
     {
         switch (col.gameObject.tag)
         {
-            case "TriggerArea":
-                cmd.CmdStartGames(col.gameObject);
-                break;
             case "AreaDoing":
                 {
                     var triggerScript = col.gameObject.GetComponent<TriggerAreaDoing>();
@@ -49,24 +39,24 @@ public class Taker : MonoBehaviourExtension, IListener
     {
         if (inTriggerObjects.Count == 0)
         {
-            current_can = TakerDoing.Empty;
+            currentDoingType = TakerDoing.Empty;
             return;
         }
         else
         {
-            var nedTaking = inTriggerObjects[0];
-            if (nedTaking == null)
+            var needTaking = inTriggerObjects[0];
+            if (needTaking == null)
             {
                 inTriggerObjects.RemoveAt(0);
                 TakeFirst();
                 return;
             }
 
-            if (nedTaking.CompareTag("AreaDoing"))
+            if (needTaking.CompareTag("AreaDoing"))
             {
-                current_can = TakerDoing.Area;
-                currentAreaDoing = nedTaking;
-                var areaDo = nedTaking.GetComponent<TriggerAreaDoing>();
+                currentDoingType = TakerDoing.Area;
+                currentAreaDoing = needTaking;
+                var areaDo = needTaking.GetComponent<TriggerAreaDoing>();
                 areaDo.PlayerThere = true;
                 areaDo.TurnLabel(true);
             }
@@ -76,12 +66,12 @@ public class Taker : MonoBehaviourExtension, IListener
     void OnTriggerExit2D(Collider2D col)
     {
         if (!col.CompareTag("AreaDoing")) return;
-        int num = inTriggerObjects.IndexOf(col.gameObject);
-        if (num != -1)
+        int index = inTriggerObjects.IndexOf(col.gameObject);
+        if (index != -1)
         {
-            inTriggerObjects.RemoveAt(num);
+            inTriggerObjects.RemoveAt(index);
 
-            if (num == 0)
+            if (index == 0)
             {
                 var areaDo = col.GetComponent<TriggerAreaDoing>();
                 if (col.gameObject == currentAreaDoing)
@@ -100,16 +90,16 @@ public class Taker : MonoBehaviourExtension, IListener
 
     void Update ()
     {
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D))
+        if (currentAreaDoing != null && (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D)))
         {
-            if (currentAreaDoing != null && currentAreaDoing.GetComponent<TriggerAreaDoing>().WasdBool)
-                currentAreaDoing.GetComponent<TriggerAreaDoing>().WasdDoing();
+            var areaDoing = currentAreaDoing.GetComponent<TriggerAreaDoing>();
+            if (areaDoing.HasWASDReqction) areaDoing.WasdDoing();
         }
     }
 
     public void EventDid()
     {
-        if (current_can == TakerDoing.Area)
+        if (currentDoingType == TakerDoing.Area)
         {
             var triggerScript = currentAreaDoing.GetComponent<TriggerAreaDoing>();
             if (triggerScript.needPushButton)

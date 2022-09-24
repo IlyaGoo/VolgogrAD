@@ -7,7 +7,7 @@ public class SetLightLevelUntilMidnightTimeDoing: AbstractTimeDoing
 
     public override void Doing()
     {
-        var gameTimer = TaskManager.instance.gameTimer;
-        TaskManager.instance.SetLight(0.8f - (gameTimer - 1230) / 211f * 0.8f, (gameTimer - 1230) / 211f);
+        var gameTimer = Timer.instance.gameTimer;
+        LightsController.instance.SetLight(0.8f - (gameTimer - 1230) / 211f * 0.8f, (gameTimer - 1230) / 211f);
     }
 }

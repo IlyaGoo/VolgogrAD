@@ -10,17 +10,37 @@
  **/
 public abstract class AbstractEntityInfo
 {
-    public GameObject entityObject;
-    public string identity;
+    public readonly GameObject EntityObject;
+    public readonly string Identity;
 
-    public AbstractEntityInfo(GameObject obj, string id)
+    protected AbstractEntityInfo(GameObject obj, string id)
     {
-        entityObject = obj;
-        identity = id;
+        EntityObject = obj;
+        Identity = id;
     }
 
     public virtual bool IsDisconnected { get; set; }
     public virtual int GetHeadNum { get;}
     public virtual int GetBodyNum { get;}
     public virtual int GetLegsNum { get;}
+    
+    public override bool Equals(object obj) => Equals(obj as AbstractEntityInfo);
+
+    private bool Equals(AbstractEntityInfo p)
+    {
+        if (p is null) return false;
+        if (ReferenceEquals(this, p)) return true;
+        if (GetType() != p.GetType()) return false;
+        return Identity == p.Identity;
+    }
+
+    public override int GetHashCode() => Identity.GetHashCode();
+
+    public static bool operator ==(AbstractEntityInfo lhs, AbstractEntityInfo rhs)
+    {
+        if (!(lhs is null)) return lhs.Equals(rhs);
+        return rhs is null;
+    }
+
+    public static bool operator !=(AbstractEntityInfo lhs, AbstractEntityInfo rhs) => !(lhs == rhs);
 }

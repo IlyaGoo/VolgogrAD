@@ -59,8 +59,7 @@ public class TaskMenuScript : MonoBehaviourExtension, IListener
         ChangeState(true);
         //FindObjectOfType<CallMenu>().ActivateObject(this);
     }
-
-    // Use this for initialization
+    
     public Menu AddMenu (string name, Transform target = null, bool needMap = false, MapScript mapS = null) {
         //заспавнить меню
         float y = -70;
@@ -108,13 +107,13 @@ public class TaskMenuScript : MonoBehaviourExtension, IListener
 
     public void ChangeTargerInterface(ButtonInfo button)
     {
-        if (!button.canChange) return;
-        if (button.gameController == null) //Случаей, если нажали на кнопку меню, а не на подменю
-        {
-            button.ChangeTarget(!button.isTarget);
-        }
-        else
-            button.gameController._taskController.ChangeTarget(button.gameController.taskPoint);
+        // if (!button.canChange) return;
+        // if (button.gameController == null) //Случаей, если нажали на кнопку меню, а не на подменю
+        // {
+        //     button.ChangeTarget(!button.isTarget);
+        // }
+        // else
+        //     button.gameController._taskController.ChangeTarget(button.gameController.taskPoint);
     }
 
     public void RemoveMenu(Menu needRemove)

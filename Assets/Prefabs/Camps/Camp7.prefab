@@ -200,14 +200,13 @@ MonoBehaviour:
   playerSleepOffset: {x: -1, y: 0, z: 0}
   camp: {fileID: -5760510756673779958}
   skipTime: 421
-  maxCount: 2
+  maxEntityCount: 3
   offset: 0.3
-  y: 0.02
+  zeroHeadPosition: {x: 0, y: 0, z: 0}
   needChangeSprite: 0
-  generalObject: []
+  headPrefab: {fileID: 2007759203041716059, guid: 508e208cdb532d24bbf314d59d7c2db5,
+    type: 3}
   mainObject: {fileID: 1922879502489742}
-  sleepers: []
-  botSleepers: []
 --- !u!60 &9123973081903069939
 PolygonCollider2D:
   m_ObjectHideFlags: 0

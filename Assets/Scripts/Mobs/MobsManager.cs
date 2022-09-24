@@ -42,14 +42,18 @@ public class MobsManager : MonoBehaviourExtension
     {
         foreach(var mob in mobs)
         {
-            /*if (mob.currentCamp != null && mob.currentCamp.sleepArea != null && !mob.currentCamp.sleepArea.botSleepers.Contains(mob.gameObject) && mob.currentCamp.sleepArea.HaveSpace)
+            if (mob.currentCamp != null && 
+                mob.currentCamp.sleepArea != null && 
+                !mob.currentCamp.sleepArea.sleepers.Exists(info => info.Identity == mob.GetId()) &&
+                mob.currentCamp.sleepArea.HaveSpace
+                )
             {
                 mob.ClearDoings();
                 mob.CurrentPoint = mob.currentCamp.ownPoint;
                 mob.SetAllRenders(false);
                 mob.transform.position = mob.currentCamp.sleepArea.transform.position;
                 mob.AddDoing(new BotSleep(mob.gameObject, 100000, null, mob.ownCamp.ownPoint));
-            }*/
+            }
         }
     }
 
@@ -78,7 +82,7 @@ public class MobsManager : MonoBehaviourExtension
         freeMobs = new List<MobController>(mobs);
     }
 
-    public TaskLogic AddTask(TaskControllerScript newTask)
+    public TaskLogic AddTask(QuestController newTask)
     {
         var newTaskLogic = new TaskLogic(newTask);
 
@@ -87,7 +91,7 @@ public class MobsManager : MonoBehaviourExtension
         currentTasks.Add(newTaskLogic);
         RefillTasks(newTaskLogic);
         //PrintTasks();
-        if (newTask.canReturnMobs) taskReturns.Add(newTaskLogic);
+        //if (newTask.canReturnMobs) taskReturns.Add(newTaskLogic);
         return newTaskLogic;
     }
 
@@ -218,24 +222,24 @@ public class TaskLogic
     public bool canReturn = true;
     public int maxCount = 10;
     public List<MobController> taskMobs = new List<MobController>();
-    public MiniGameController[] controllers;
-    TaskControllerScript _taskController;
+    public QuestStep[] controllers;
+    QuestController _taskController;
     ObjectsScript ObjectsContainer => MonoBehaviourExtension.objectsScript;
     public int NeedMobsCount => Mathf.Max(0, maxCount - taskMobs.Count);
 
-    public TaskLogic(TaskControllerScript controller)
+    public TaskLogic(QuestController controller)
     {
-        needFreeMobsAfterEnd = controller.needFreeMobsAfterEnd;
-        maxCount = controller.needBotsCount;
-        _taskController = controller;
-        controllers = controller._minigame;
+        // needFreeMobsAfterEnd = controller.needFreeMobsAfterEnd;
+        // maxCount = controller.needBotsCount;
+        // _taskController = controller;
+        // controllers = controller._minigame;
     }
 
     public void End()
     {
-        switch (_taskController.currentType)
+        switch (_taskController.taskType)
         {
-            case TaskType.Coocking:
+            case TaskType.Cooking:
                 
                 break;
             case TaskType.Standing:
@@ -248,7 +252,7 @@ public class TaskLogic
     {
         taskMobs.AddRange(newMob);
 
-        if(_taskController.currentType == TaskType.Diging)//Равномерно распределяем ботов с металлодетекторами
+        if(_taskController.taskType == TaskType.Digging)//Равномерно распределяем ботов с металлодетекторами
         {
             int needMobsWithDet = Mathf.Max(1, newMob.Count / 3);
             List<BotInstructions> botsWithMetallodetecor = new List<BotInstructions>();//Список ботов с металиком и лопатой одновременно
@@ -336,12 +340,12 @@ public class TaskLogic
 
     public void SetMobCurse(MobController con, BotInstructions instructions = null)
     {
-        switch (_taskController.currentType)
+        switch (_taskController.taskType)
         {
-            case TaskType.Coocking:
+            case TaskType.Cooking:
                 con.ClearDoings();
                 con.doingNow = BotDoingCategory.Coocking;
-                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].currentCampObject.ownPoint));
 
                 if (UnityEngine.Random.Range(0, 2) == 0)
                     con.AddDoing(new BotWaiting(con.gameObject, UnityEngine.Random.Range(20, 100), UnityEngine.Random.Range(0, 2) == 0 ? new string[1] { "Doing" } : null, con.GetEndPoint()));
@@ -363,7 +367,7 @@ public class TaskLogic
                 if (con.oldLevel > 5) break;//Если моб достаточно олд, то он ебет в рот ваше построение
                 con.ClearDoings();
                 con.doingNow = BotDoingCategory.Postr;
-                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].currentCampObject.ownPoint));
 
                 var pos = _taskController.GetComponent<PostrController>().AddOne();
                 ((BotGoing)con.GetLastDoing()).SetPos(pos);
@@ -375,10 +379,10 @@ public class TaskLogic
                 con.AddDoing(wait);
                 con.AddDoing(new BotSendEnd(con, this, con.GetEndPoint()));
                 break;
-            case TaskType.Diging:
+            case TaskType.Digging:
                 con.ClearDoings();
                 con.doingNow = BotDoingCategory.Digging;
-                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].ownPoint));
+                con.AddDoings(con.SetCurse(controllers[UnityEngine.Random.Range(0, controllers.Length)].currentCampObject.ownPoint));
                 ItemData lop = null;
                 List<string> inHandsNames = null;
                 string detectorName = null;//Нужно чтобы потом если что поменять положение в руках
@@ -421,7 +425,7 @@ public class TaskLogic
                     }
                 }
                 var needPoint = con.GetEndPoint();
-                con.AddDoing(new BotGoingInZone(con, needPoint.transform.position, needPoint, _taskController.GetComponent<DiggingController>().GetPoints(), inHandsNames?.ToArray()));
+                //con.AddDoing(new BotGoingInZone(con, needPoint.transform.position, needPoint, _taskController.GetComponent<DiggingController>().GetPoints(), inHandsNames?.ToArray()));
                 if (lop != null && detectorName != null)
                 {
                     MonoBehaviourExtension.localCommands.CmdChangeInHandsPosition(con.gameObject, detectorName, true);

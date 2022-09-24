@@ -6,13 +6,14 @@ using UnityEngine;
 public abstract class TriggerAreaDoing : MonoBehaviourExtension, ICanBeOwn
 {
     static readonly string triggerTextPrefix = "Texts/TriggerText";
-    [SerializeField] string labelText = null;
+    public string labelText = null;
     protected GameObject LabelObject;
-    [SerializeField] int labelSize = 0;
+    public int labelSize = 0;
     public bool PlayerThere;
-    public bool WasdBool;
+    /** Существует ли реакция области на движение WASD игрока */
+    public bool HasWASDReqction;
     public bool needPushButton = true;
-    [SerializeField] Vector3 textOffset = new Vector3(-0.6f, 1, 0);
+    public Vector3 textOffset = new Vector3(-0.6f, 1, 0);
 
     public GameObject owner;
     public virtual GameObject Owner { get => owner; set => owner = value; }
@@ -35,6 +36,9 @@ public abstract class TriggerAreaDoing : MonoBehaviourExtension, ICanBeOwn
     { 
     }
 
+    /**
+     * Выполняется только на сервере
+     */
     public virtual void DisconnectExit(string id)
     {
     }

@@ -64,7 +64,7 @@ public class Commands : NetworkBehaviourExtension
                     TargetForcePutItem(connectionToClient, invControllerOject, invNumber, itemData.Item1, y, x, itemData.Item2);
             }
     }
-    
+
 
     [Command]
     public void CmdTakeItem(GameObject item)
@@ -129,7 +129,7 @@ public class Commands : NetworkBehaviourExtension
                 if (count < 1) return;
             }
         }
-        foreach(var inv in inventories)
+        foreach (var inv in inventories)
         {
             while ((pos = inv.TryAddItemInEmpty(prName, System.Math.Min(count, newItemMaxAmount))).Item1 != -1)
             {
@@ -147,7 +147,7 @@ public class Commands : NetworkBehaviourExtension
     public void CmdTakeDetectingItem(GameObject item)
     {
         var itemData = item.GetComponent<DetectingItem>().itemData;
-        TryPut(itemData.PrefabName, itemData.CurrentAmount, new InventoryData[] {Inv1, Inv0});
+        TryPut(itemData.PrefabName, itemData.CurrentAmount, new InventoryData[] { Inv1, Inv0 });
         NetworkServer.Destroy(item);
     }
 
@@ -343,7 +343,7 @@ public class Commands : NetworkBehaviourExtension
     public void CmdWantToChangeInCar(GameObject carArea, string playerId, bool wantSit)
     {
         var area = carArea.GetComponentInChildren<CarAreaDoing>();
-        var player = EntitysController.instance.GetPlayerData(playerId).entityObject;
+        var player = EntitysController.instance.GetPlayerData(playerId).EntityObject;
 
         if (wantSit)
         {
@@ -516,7 +516,7 @@ public class Commands : NetworkBehaviourExtension
 
     #endregion
 
-    #region sleep
+    #region time and sleep
 
     /** Вызывает любой игрок, когда пытается лечь спать
      * @param mainSleepObject главный объект, в ребенке которого есть скрипт зоны сна
@@ -528,8 +528,8 @@ public class Commands : NetworkBehaviourExtension
         TargetPreapareToSleep(connectionToClient, mainSleepObject);
         RpcDestroyObjectInHands(localPlayer); //Убираем из рук все вещи
         var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
-        
-        if (taskManager.gameTimer < sleepAreaComponent.skipTime)
+
+        if (Timer.instance.gameTimer < sleepAreaComponent.skipTime)
         {
             CmdReadyToSkip(localPlayerId, sleepAreaComponent.skipTime, mainSleepObject);
             TargetSetDebaf(connectionToClient, 3, false);//кидаем сон
@@ -550,18 +550,19 @@ public class Commands : NetworkBehaviourExtension
         var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
         sleepAreaComponent.LocalPrepareToSleep();
     }
-    
+
     [TargetRpc]
     void TargetSetSleeperObject(NetworkConnection target, GameObject mainSleepObject)//todo нужно что-нибудь с этим придумать
     {
         var sleepAreaComponent = mainSleepObject.GetComponentInChildren<SleepAreaDoing>();
-        taskManager.nowSleepObject = sleepAreaComponent;
+        Timer.instance.nowSleepObject = sleepAreaComponent;
     }
-    
+
+    /** Выполняется только на сервере */
     public void WakeUp(GameObject sleepArea, string guid, bool removing = false)
     {
         RpcEntityWakeUp(guid, sleepArea);
-        taskManager.UnReadyToSkip(guid, removing);
+        Timer.instance.UnReadyToSkip(guid, removing);
     }
 
     /** Вызывает любой игрок, когда пытается встать
@@ -592,7 +593,7 @@ public class Commands : NetworkBehaviourExtension
     {
         RpcReadyToSkip(id, sleepArea);
         if (time != -1)
-            taskManager.ReadyToSkip(id, time);
+            Timer.instance.ReadyToSkip(id, time);
     }
 
     [Command]
@@ -606,8 +607,8 @@ public class Commands : NetworkBehaviourExtension
     {
         RpcEntityWakeUp(botId, sleepingMainObject);
     }
-    
-    
+
+
     [ClientRpc]
     void RpcEntityWakeUp(string entityId, GameObject sleepingMainObject)
     {
@@ -617,8 +618,7 @@ public class Commands : NetworkBehaviourExtension
     [Command]
     public void CmdReadyToSkipWithoutSprite(string id, int time)
     {
-        if (time != -1)
-            taskManager.ReadyToSkip(id, time);
+        if (time != -1) Timer.instance.ReadyToSkip(id, time);
         TargetOffDebaf(connectionToClient, 0);//Убираем жару
         TargetOffDebaf(connectionToClient, 2);//Убираем чил
         TargetSetDebaf(connectionToClient, 3, false);//кидаем сон
@@ -629,16 +629,31 @@ public class Commands : NetworkBehaviourExtension
     {
         ReadyToSkip(sleeperId, sleepArea);
     }
-    
+
     [TargetRpc]
     public void TargetReadyToSkip(NetworkConnection target, GameObject sleepArea, string sleeperId)
     {
         ReadyToSkip(sleeperId, sleepArea);
     }
-    
+
     private void ReadyToSkip(string sleeperId, GameObject sleepArea)
     {
         sleepArea.GetComponentInChildren<SleepAreaDoing>().AddOneEntity(EntitysController.instance.GetPlayerOrBotData(sleeperId));
+    }
+
+    [ClientRpc]
+    public void RpcSendTime(int time)
+    {
+        Timer.instance.SetGameTimer(time);
+    }
+
+    [ClientRpc]
+    public void RpcVakeUp()
+    {
+        if (localTaker.currentAreaDoing == null) return;
+        var scr = localTaker.currentAreaDoing.GetComponent<SleepAreaDoing>();
+        if (scr != null)
+            scr.WakeUp();
     }
 
     #endregion
@@ -881,23 +896,13 @@ public class Commands : NetworkBehaviourExtension
     }
 
     #endregion
-    
-    #region tasks
-
-    [ClientRpc]
-    public void RpcEndTaskController(GameObject controllerObject)
-    {
-        controllerObject.GetComponent<TaskControllerScript>().End();
-    }
-
-    #endregion
 
     [TargetRpc]
     public void TargetSetDebaf(NetworkConnection target, int debafId, bool ce)
     {
         debafsController.AddDebaf(debafId, ce);
     }
-    
+
     [TargetRpc]
     public void TargetOffDebaf(NetworkConnection target, int debafId)
     {
@@ -955,7 +960,7 @@ public class Commands : NetworkBehaviourExtension
     [Command]
     public void CmdSkipTime(int ToTime, int multiplayer)
     {
-        taskManager.SkipTo(ToTime, multiplayer);
+        Timer.instance.SkipTo(ToTime, multiplayer);
     }
 
     [Command]
@@ -967,7 +972,7 @@ public class Commands : NetworkBehaviourExtension
     [ClientRpc]
     public void RpcSetEnergyMultiplayer(int multiplayer)
     {
-        GameObject.Find("LocalPlayer").GetComponent<HealthBar>().multiplayer = multiplayer;
+        localPlayer.GetComponent<HealthBar>().multiplayer = multiplayer;
     }
 
     [Command]
@@ -982,78 +987,118 @@ public class Commands : NetworkBehaviourExtension
         soundsObject.PlayOneShot(sounds[num]);
     }
 
-    #region TaskRegion
-
+    #region Quests
+    /** Когда пользователь запускает квест, на самом деле он делает запрос серверу, чтобы тот начал все делать */
     [Command]
-    public void CmdMiniGameSet(GameObject controller, int number, bool haveController)
+    public void CmdStartQuest(GameObject questControllerObject)
     {
-        //print("cmd");
-        var miniGameController = haveController ? controller.GetComponent<TaskControllerScript>()._minigame[number] :
-            controller.GetComponent<MiniGameController>();
-        RpcMiniGameSet(controller, number, miniGameController.currentCount + 1, haveController);
-    }
-
-    [ClientRpc]
-    public void RpcMiniGamePlus(GameObject controller, int number)
-    {
-        //Старый метод, теперь используется RpcMiniGameSet()
-        controller.GetComponent<TaskControllerScript>()._minigame[number].AddOne();
-    }
-    
-    [ClientRpc]
-    public void RpcMiniGameSet(GameObject controller, int number, int count, bool haveController)
-    {
-        var miniGameController = haveController ? controller.GetComponent<TaskControllerScript>()._minigame[number] :
-            controller.GetComponent<MiniGameController>();
-        miniGameController.SetCount(count);
+        var questController = questControllerObject.GetComponent<QuestController>();
+        questController.ChooseAndSpawnSteps();
     }
 
     [Command]
-    public void CmdSetPlan(GameObject controller, int numOfPlan)
+    public void CmdMiniGameSet(GameObject controller)
     {
-        RpcSetPlan(controller, numOfPlan);
-    }
-    
-    [ClientRpc]
-    public void RpcSetPlan(GameObject controller, int numOfPlan)
-    {
-        controller.GetComponent<TaskControllerScript>().ChangePlan(numOfPlan);
+        var step = controller.GetComponent<QuestStep>();
+        RpcMiniGameSet(controller, step.currentCount + 1);
     }
 
+    [ClientRpc]
+    private void RpcMiniGameSet(GameObject controller, int count)
+    {
+        var step = controller.GetComponent<QuestStep>();
+        step.SetCount(count);
+    }
+
+    /** Запрос инициализации контроллера квеста со стороны клиена
+        Вызывать только с localCommands
+     */
     [Command]
-    public void CmdStartGames(GameObject controller)
+    public void CmdRequestInitQuestController(GameObject questControllerObject)
     {
-        RpcStartGames(controller);
+        var controller = questControllerObject.GetComponent<QuestController>();
+        TargetInitLocalCommands(connectionToClient, questControllerObject, controller.currentQuestName, (int)controller.taskType, controller._currentPlanNum);
     }
 
-    [ClientRpc]
-    public void RpcStartGames(GameObject controller)
-    {
-        controller.GetComponent<TaskControllerScript>().StartGames();
-    }
-
-    [Command]
-    public void CmdInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
-    {
-        RpcInitTaskController(taskObject, type, needMenu, needButtons, name);
-    }
-
-    [ClientRpc]
-    void RpcInitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
-    {
-        InitTaskController(taskObject, type, needMenu, needButtons, name);
-    }
-    
     [TargetRpc]
-    public void TargetInitTaskController(NetworkConnection target, GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
+    public void TargetInitLocalCommands(NetworkConnection target, GameObject questControllerObject, string currentQuestName, int taskType, int planNum)
     {
-        InitTaskController(taskObject, type, needMenu, needButtons, name);
+        var controller = questControllerObject.GetComponent<QuestController>();
+        controller.Init(currentQuestName, (TaskType)taskType, planNum);
     }
 
-    void InitTaskController(GameObject taskObject, int type, bool needMenu, bool needButtons, string name)
+    /** Запрос инициализации активатора квеста со стороны клиена
+        Вызывать только с localCommands
+     */
+    [Command]
+    public void CmdRequestInitQuestActivator(GameObject questActivatorObject)
     {
-        var taskController = taskObject.GetComponent<TaskControllerScript>();//cooker, digger итд
-        taskController.Reinitializate(type, needMenu, needButtons, name);
+        var controller = questActivatorObject.GetComponent<QuestStartAreaDoing>();
+        TargetInitLocalActivator(connectionToClient, questActivatorObject, controller.GetQuest().gameObject);
     }
-    #endregion
+
+    [TargetRpc]
+    public void TargetInitLocalActivator(NetworkConnection target, GameObject areaObj, GameObject questObj)
+    {
+        var area = areaObj.GetComponent<QuestStartAreaDoing>();
+        var quest = questObj.GetComponent<QuestController>();
+        area.SetQuest(quest);
+        quest.starters.Add(area);//Двойная связь, но ничего страшного, это взаимосвязанные объекты
+    }
+
+    /** Запрос инициализации шага квеста со стороны клиена
+        Вызывать только с localCommands
+     */
+    [Command]
+    public void CmdRequestInitQuestStep(GameObject questStepObject)
+    {
+        var controller = questStepObject.GetComponent<QuestStep>();
+        TargetInitLocalStep(
+            connectionToClient,
+            questStepObject,
+            controller.needChangeCollider,
+            controller.needCount,
+            controller.currentCount,
+            controller.quest.gameObject,
+            controller.miniGameNeedEnergy,
+            controller.stepName,
+            controller.needActive,
+            controller.miniGameNamePrefab,
+            (int)controller.needObjectType,
+            controller.needSteps.Select(step => step.gameObject).ToArray()
+        );
+    }
+
+    [TargetRpc]
+    public void TargetInitLocalStep(
+        NetworkConnection target,
+        GameObject stepObject,
+        bool needChangeCollider,
+        int newNeedCount,
+        int newCurrentCount,
+        GameObject questObject,
+        bool newMiniGameNeedEnergy,
+        string newName,
+        bool newNeedActive,
+        string miniGameNamePrefab,
+        int newNeedObjectType,
+        GameObject[] needStepsObjects
+        )
+    {
+        stepObject.GetComponent<QuestStep>().SetData(
+            needChangeCollider,
+            newNeedCount,
+            newCurrentCount,
+            questObject,
+            newMiniGameNeedEnergy,
+            newName,
+            newNeedActive,
+            miniGameNamePrefab,
+            newNeedObjectType,
+            needStepsObjects
+            );
+    }
+
+    # endregion
+
 }

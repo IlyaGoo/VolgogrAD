@@ -24,7 +24,7 @@ public class CarAreaDoing : TriggerAreaDoing, IListener, ICanBeOwn
         { 
             driver = value;
             var data = EntitysController.instance.GetPlayerData(value);
-            driverObject = data == null ? null : EntitysController.instance.GetPlayerData(value).entityObject;
+            driverObject = data == null ? null : EntitysController.instance.GetPlayerData(value).EntityObject;
         } 
     }
 

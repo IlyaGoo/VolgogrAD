@@ -176,6 +176,8 @@ TextureImporter:
   isReadable: 0
   streamingMipmaps: 0
   streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMasterTextureLimit: 0
   grayScaleToAlpha: 0
   generateCubemap: 6
   cubemapConvolution: 0
@@ -185,8 +187,8 @@ TextureImporter:
   textureSettings:
     serializedVersion: 2
     filterMode: 0
-    aniso: -1
-    mipBias: -100
+    aniso: 1
+    mipBias: 0
     wrapU: 1
     wrapV: 1
     wrapW: 1
@@ -207,9 +209,12 @@ TextureImporter:
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
   maxTextureSizeSet: 0
   compressionQualitySet: 0
   textureFormatSet: 0
+  ignorePngGamma: 0
   applyGammaDecoding: 1
   platformSettings:
   - serializedVersion: 3
@@ -1320,6 +1325,58 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
+    nameFileIdTable:
+      OptionSprites_39: 21300078
+      OptionSprites_10: 21300020
+      OptionSprites_21: 21300042
+      OptionSprites_40: 21300080
+      OptionSprites_35: 21300070
+      OptionSprites_48: 21300096
+      OptionSprites_32: 21300064
+      OptionSprites_1: 21300002
+      OptionSprites_44: 21300088
+      OptionSprites_37: 21300074
+      OptionSprites_47: 21300094
+      OptionSprites_2: 21300004
+      OptionSprites_30: 21300060
+      OptionSprites_28: 21300056
+      OptionSprites_24: 21300048
+      OptionSprites_6: 21300012
+      OptionSprites_23: 21300046
+      OptionSprites_9: 21300018
+      OptionSprites_7: 21300014
+      OptionSprites_4: 21300008
+      OptionSprites_42: 21300084
+      OptionSprites_49: 21300098
+      OptionSprites_11: 21300022
+      OptionSprites_43: 21300086
+      OptionSprites_18: 21300036
+      OptionSprites_14: 21300028
+      OptionSprites_46: 21300092
+      OptionSprites_13: 21300026
+      OptionSprites_12: 21300024
+      OptionSprites_36: 21300072
+      OptionSprites_3: 21300006
+      OptionSprites_50: 21300100
+      OptionSprites_5: 21300010
+      OptionSprites_38: 21300076
+      OptionSprites_29: 21300058
+      OptionSprites_19: 21300038
+      OptionSprites_41: 21300082
+      OptionSprites_22: 21300044
+      OptionSprites_33: 21300066
+      OptionSprites_15: 21300030
+      OptionSprites_0: 21300000
+      OptionSprites_20: 21300040
+      OptionSprites_27: 21300054
+      OptionSprites_8: 21300016
+      OptionSprites_45: 21300090
+      OptionSprites_25: 21300050
+      OptionSprites_26: 21300052
+      OptionSprites_17: 21300034
+      OptionSprites_16: 21300032
+      OptionSprites_31: 21300062
+      OptionSprites_34: 21300068
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0

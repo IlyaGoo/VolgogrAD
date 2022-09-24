@@ -71,9 +71,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   needChangeCollider: 1
-  startNumber: 0
   ownButton: {fileID: 0}
-  ownPoint: {fileID: 0}
+  currentCampObject: {fileID: 0}
   needCount: 3
   currentCount: 0
   ready: 0
@@ -163,21 +162,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  taskType: 3
   needFreeMobsAfterEnd: 1
   needBotsCount: 10
   canReturnMobs: 1
-  menuScript: {fileID: 0}
   currentMenu: {fileID: 0}
-  inStages: 
   taskName: 
   _minigame:
   - {fileID: 114606174734401322}
-  current_minigames: 
+  currentMinigames: 
   isOn: 0
   currentPlanNumber: 0
   needMap: 0
   needShowButtons: 0
-  currentType: 0
+  miniGameControllerPrefab: {fileID: 1972992640237982, guid: 2e0977385bc62d24fb826df4cf6e45d7,
+    type: 3}
 --- !u!114 &114885710274168908
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -217,6 +216,7 @@ MonoBehaviour:
   needPushButton: 1
   textOffset: {x: -0.6, y: 1, z: 0}
   owner: {fileID: 0}
+  thisTaskControllerScript: {fileID: 0}
 --- !u!114 &-4538556770533325656
 MonoBehaviour:
   m_ObjectHideFlags: 0

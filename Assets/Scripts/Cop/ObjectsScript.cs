@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/** Класс с объектами для копа
+ * todo разобраться, выглядит хуева
+ */
 public class ObjectsScript : MonoBehaviour {
     public static ObjectsScript instance;
     [SerializeField] GameObject[] objects;

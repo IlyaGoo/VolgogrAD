@@ -1,20 +1,26 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering.Universal;
 
-public class LightScript : MonoBehaviour {
+
+public class LightScript : MonoBehaviourExtension
+{
+    public static readonly List<LightScript> allLights = new List<LightScript>();
 
     [SerializeField] float maxIntecive = 0;
     [SerializeField] float minIntecive = 0;
-    Light2D OwnLight => GetComponent<Light2D>();
-    [SerializeField] TaskManager man = null;
+    UnityEngine.Rendering.Universal.Light2D OwnLight => GetComponent<UnityEngine.Rendering.Universal.Light2D>();
     public bool needUpdate = true;
 
-    void Start()
+    private void Awake()
     {
-        if (man == null) man = GameObject.FindGameObjectWithTag("TaskManager").GetComponent<TaskManager>();
-        man.AddLightoObject(this);
+        allLights.Add(this);
+    }
+
+    private void Start()
+    {
+        SetLight(LightsController.instance.currentLightLevel);
     }
 
     public void SetLight(float intence)
@@ -24,7 +30,7 @@ public class LightScript : MonoBehaviour {
 
     public void SetFullLight()
     {
-        if (OwnLight != null) OwnLight.intensity = man.currentLightLevel;
+        if (OwnLight != null) OwnLight.intensity = LightsController.instance.currentLightLevel;
     }
 
     public void SetZeroLight()
@@ -34,14 +40,12 @@ public class LightScript : MonoBehaviour {
 
     void OnDestroy()
     {
-        var A = GameObject.FindGameObjectWithTag("TaskManager");
-        var B = A == null ? null : A.GetComponent<TaskManager>();
-        if (B != null) B.RemoveLightObject(this);
+        allLights.Remove(this);
     }
 
     void OnEnable()
     {
-        if (man == null) return;
-        SetLight(man.currentLightLevel);
+        if (LightsController.instance != null)//Такое происходит при первом заходе в сцену
+            SetLight(LightsController.instance.currentLightLevel);
     }
 }

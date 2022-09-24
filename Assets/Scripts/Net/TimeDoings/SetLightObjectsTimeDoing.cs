@@ -10,6 +10,6 @@ public class SetLightObjectsTimeDoing: AbstractOnceTimeDoing
 
     public override void Doing()
     {
-        TaskManager.instance.SetNightObject(needState);
+        LightsController.instance.SetNightObject(needState);
     }
 }

@@ -28,6 +28,9 @@ public class PlayerInfo: AbstractEntityInfo{
         legsNum = legs;
     }
 
+    /**
+     * Выполняется только на сервере
+     */
     public void EndAllDoins(string id)
     {
         foreach (var doing in currentDoings)

@@ -36,7 +36,7 @@ public class ChatPlayerHelper : NetworkBehaviourExtension {
                         try
                         {
                             time = int.Parse(timePart[0]) * 60 + int.Parse(timePart[1]);
-                            if (taskManager.gameTimer > time)
+                            if (Timer.instance.gameTimer > time)
                                 time += 1439;//нужно пересечь ночь, которая отнимает это кол-во
                         }
                         catch (FormatException)

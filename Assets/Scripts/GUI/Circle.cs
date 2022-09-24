@@ -7,8 +7,8 @@ using UnityEngine.EventSystems;
 public class Circle : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
 
-    public TaskPoint taskPoint;
-    string text => taskPoint.pointData.name;
+    //public TaskPoint taskPoint;
+    string text =>"kek";// taskPoint.pointData.name;
     [SerializeField] GameObject textPrefab;
     private GameObject textObject;
 

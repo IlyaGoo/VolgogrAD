@@ -38,7 +38,7 @@ public class Menu : ButtonInfo {
         }
     }
 
-    public ButtonInfo addButton(string text, Transform newTarget = null, MiniGameController gameController = null)
+    public ButtonInfo addButton(string text, Transform newTarget = null, QuestStep gameController = null)
     {
         var newMiniMenu = Instantiate(secondButton2, new Vector3(buttonObject.transform.position.x, buttonObject.transform.position.y - 50*(1+miniButtons.Count), 0), Quaternion.identity, buttonObject.transform);
         var newMiniMenuInfo = newMiniMenu.GetComponent<ButtonInfo>();
@@ -79,15 +79,15 @@ public class Menu : ButtonInfo {
         miniButtons.RemoveAt(num);
         if (button.isTarget)
         {
-            gameController._taskController.ChangeTarget(button.gameController.taskPoint);
-            if (miniButtons.Count > 0)
-            {
-                gameController._taskController.ChangeTarget(miniButtons[0].gameController.taskPoint);
-            }
-            else
-            {
-                ChangeTarget(true);
-            }
+            // gameController._taskController.ChangeTarget(button.gameController.taskPoint);
+            // if (miniButtons.Count > 0)
+            // {
+            //     gameController._taskController.ChangeTarget(miniButtons[0].gameController.taskPoint);
+            // }
+            // else
+            // {
+            //     ChangeTarget(true);
+            // }
         }
 
         Destroy(button.buttonObject);

@@ -10,6 +10,6 @@
 
     public override void Doing()
     {
-        TaskManager.instance.SetLight(intensy, secondIntensy);
+        LightsController.instance.SetLight(intensy, secondIntensy);
     }
 }

@@ -6,13 +6,12 @@ public class MiniGameAreaDoing : TriggerAreaDoing
 {
     public override bool NeedShowLabel()
     {
-        //var a = GetComponent<MiniGameController>();
-        return PlayerThere;
+        return false;//return PlayerThere &&  GetComponent<CampObject>().CurrentMiniGameController != null;
     }
 
     public override bool Do()
     {
-        GetComponent<MiniGameController>().SpawnMiniGame();
+        // GetComponent<CampObject>().CurrentMiniGameController.SpawnMiniGame();
         return true;
     }
 }

@@ -12,12 +12,12 @@ public class ButtonInfo : MonoBehaviour {
     public float height;
     public Menu ownMenu;
     public int number;
-    public MiniGameController gameController = null;
+    public QuestStep gameController = null;
     public GameObject buttonObject;
 
     public GameObject arrow;
 
-    public void ChangePoint(MiniGameController gameController)
+    public void ChangePoint(QuestStep gameController)
     {
         this.gameController = gameController;
     }

@@ -13,12 +13,12 @@ public class Connector : NetworkBehaviourExtension
         foreach (var pl in EntitysController.instance.playersData.Values)
         {
             cmd.plNet.SendPlayerData(pl);
-            cmd.plNet.SendSpawnParts(pl.entityObject);
-            cmd.SendEnterInWater(pl.entityObject);
-            cmd.plNet.SendNickname(pl.entityObject);
-            cmd.SendSpawnObjectInHands(pl.entityObject);
-            cmd.SendAnimState(pl.entityObject);
-            cmd.TargetSetVanish(connectionToClient, pl.entityObject, !pl.entityObject.GetComponent<StandartMoving>().vanished);
+            cmd.plNet.SendSpawnParts(pl.EntityObject);
+            cmd.SendEnterInWater(pl.EntityObject);
+            cmd.plNet.SendNickname(pl.EntityObject);
+            cmd.SendSpawnObjectInHands(pl.EntityObject);
+            cmd.SendAnimState(pl.EntityObject);
+            cmd.TargetSetVanish(connectionToClient, pl.EntityObject, !pl.EntityObject.GetComponent<StandartMoving>().vanished);
         }
     }
 
@@ -46,7 +46,7 @@ public class Connector : NetworkBehaviourExtension
                     car.transform.parent.gameObject, 
                     passager, 
                     passager.Equals(car.Driver), 
-                    EntitysController.instance.GetPlayerData(passager).entityObject
+                    EntitysController.instance.GetPlayerData(passager).EntityObject
                     );
             }
             cmd.ThrowCarState(car.transform.parent.gameObject, car.carComponent.currentState, car.carComponent._animWheels.speed);
@@ -65,32 +65,21 @@ public class Connector : NetworkBehaviourExtension
         }
     }
 
-    void RequestTasks()
+    void RequestTime()
     {
-        taskManager.Connected();
-        
-        var res = new GameObject[taskManager.taskControllers.Count];
-        var res2 = new int[taskManager.taskControllers.Count];
-        for (var i = 0; i < taskManager.taskControllers.Count; i++)//Стартуем эти контроллеры
-        {
-            var cont = taskManager.taskControllers[i];
-            res[i] = cont.gameObject;
-            res2[i] = cont.currentPlanNumber;
-            cmd.TargetInitTaskController(connectionToClient, cont.gameObject, (int)cont.currentType, cont.needMap, cont.needShowButtons, cont.taskName);
-        }
-        
-        TargetSendTasks(connectionToClient, taskManager.gameTimer, res, res2);//Посылаем информацию обо всех контроллерах
+        TargetSetTime(connectionToClient, Timer.instance.gameTimer);
     }
     
     [TargetRpc]
-    public void TargetSendTasks(NetworkConnection target, int time, GameObject[] startedTasks, int[] plans)
+    public void TargetSetTime(NetworkConnection target, int time)
     {
-        taskManager.SetData(time, startedTasks, plans);
+        Timer.instance.SetGameTimer(time);
     }
 
     [Command]
     public void CmdRequestAll()
     {
+        RequestTime();
         RequestPlayersData();
         RequestRadio();
         RequestMobsData();
@@ -99,7 +88,6 @@ public class Connector : NetworkBehaviourExtension
         RequestCamps();
         RequestCarsData();
         RequestWholes();
-        RequestTasks();
     }
 
     void RequestRadio()
@@ -122,7 +110,7 @@ public class Connector : NetworkBehaviourExtension
             {
                 foreach(var sleeper in sleepArea.sleepers)
                 {
-                    cmd.TargetReadyToSkip(connectionToClient, sleepArea.transform.parent.gameObject, sleeper.identity);
+                    cmd.TargetReadyToSkip(connectionToClient, sleepArea.transform.parent.gameObject, sleeper.Identity);
                 }
             }
         }
@@ -139,13 +127,13 @@ public class Connector : NetworkBehaviourExtension
 
     public void SetLight()
     {
-        TargetSendLight(connectionToClient, taskManager.globalLight.intensity, taskManager.currentLightLevel);
+        TargetSendLight(connectionToClient, LightsController.instance.globalLight.intensity, LightsController.instance.currentLightLevel);
     }
 
     [TargetRpc]
     void TargetSendLight(NetworkConnection target, float intensy, float secondIntensy)
     {
-        taskManager.SetConnectionLight(intensy, secondIntensy);
+        LightsController.instance.SetConnectionLight(intensy, secondIntensy);
     }
 
     public void RequestCamps()

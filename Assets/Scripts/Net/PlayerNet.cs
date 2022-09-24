@@ -283,7 +283,6 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     private void CmdSpawnParts(int x, int y, int z)
     {
         RpcSpawnParts(x, y, z);
-        EntitysController.instance.GetPlayerData(GetComponent<NetworkIdentity>().netId.ToString()).SetBody(x, y, z);
     }
 
     [Command]
@@ -306,12 +305,13 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     [ClientRpc]
     private void RpcSpawnParts(int newHeadNum, int newBodyNum, int newLagsNum)
     {
+        EntitysController.instance.GetPlayerData(GetComponent<NetworkIdentity>().netId.ToString()).SetBody(newHeadNum, newBodyNum, newLagsNum);
         _moving.SpawnParts(newHeadNum, newBodyNum, newLagsNum);
     }
     
     public void SendPlayerData(PlayerInfo playerInfo)
     {
-        TargetSendPlayerData(connectionToClient, playerInfo.identity, playerInfo.nickname, playerInfo.entityObject);
+        TargetSendPlayerData(connectionToClient, playerInfo.Identity, playerInfo.nickname, playerInfo.EntityObject);
     }
 
     public void SendSpawnParts(GameObject obj)
@@ -377,13 +377,9 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
     public override void OnStartLocalPlayer()
     {
         SetGameSystem();
-
-/*        foreach (var helper in FindObjectsOfType<ChatPlayerHelper>())
-            helper.Init();//Инициализируем ChatPlayerHelper*/
+        
         taskManager.Init();//Инициализируем TaskManager
-
-
-        //_taskManager.globalLight = cameraLight;
+        
         /*var docPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal) + "/VolgogrAD";
         using (StreamReader sw = new StreamReader(docPath + "/player.txt", System.Text.Encoding.Default))
         {
