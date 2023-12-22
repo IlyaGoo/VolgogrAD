@@ -1,11 +1,23 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Mirror;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-public class QuestStep : NetworkBehaviourExtension
+/** Этот объект может быть целью как квест
+ * В данный момент целью может стать сам квест, либо его отдельный шаг
+ */
+public interface IQuestTarget
 {
-    public QuestState state = QuestState.Available;
+    public Transform GetTargetTransform();
+}
+
+public class QuestStep : NetworkBehaviourExtension, IQuestTarget
+{
+    public QuestState state = QuestState.Unavailable;
+    public bool choosen => taskManager._targetStep == this;//Выбран ли этот степ как основной в данный момент
+    
     public bool needChangeCollider = true; //Необходимо ли включать физические границы
     public CampObject currentCampObject; //Объект в лагере, на котором этот минигейм сейчас висит (например, костер)
     
@@ -24,24 +36,44 @@ public class QuestStep : NetworkBehaviourExtension
     /** Размер и смещение размеров миниигры, нужно для ботов todo звучит ненадежно */
     public Vector2 size = Vector2.zero;
     public Vector2 offset = Vector2.zero;
-    public string miniGameNamePrefab = null;
+    public string miniGameNamePrefabName;
 
     public CampObjectType needObjectType;
 
     public QuestStep[] needSteps;//Шаги которые необходимо выполнить перед выполнением этого шага
 
-     public void Start()
+    public Transform GetTargetTransform()
     {
-        localCommands.CmdRequestInitQuestController(gameObject);
+        return needObjectType != CampObjectType.Nothing ? CampObject.getByType(needObjectType).First().transform : null;
     }
+
+     public void Start()
+     {
+         RequestData();
+     }
+
+     [Client]
+     private void RequestData()
+     {
+         /** Если мы не сервер, то запрашиваем данные степа */
+         if(!isServer) localCommands.CmdRequestInitQuestStep(gameObject);
+     }
 
     public void ChangeState(QuestState newState) {
         state = newState;
-        QuestStepsController.instance.ResortSteps(needObjectType);
+        if (state == QuestState.Available)
+        {
+            taskManager.OfferStepTarget(this);
+        }
+        else
+        {
+            taskManager.RemoveStepTarget(this);
+        }
     }
 
     void OnDestroy() {
-        QuestStepsController.instance.RemoveStep(needObjectType, this);
+        QuestStepsController.Instance.RemoveStep(this);
+        taskManager.RemoveStepTarget(this);
     }
 
     /** Первоначальная установка всех данных */
@@ -53,29 +85,44 @@ public class QuestStep : NetworkBehaviourExtension
         bool newMiniGameNeedEnergy,
         string newName,
         bool newNeedActive,
-        string newMiniGameNamePrefab, //todo
+        string newMiniGameNamePrefab,
         int newNeedObjectType,
-        GameObject[] needStepsObjects
+        QuestStep[] needStepsObjects,
+        int stateNum
     )
     {
-        needSteps = needStepsObjects.Select(obj => obj.GetComponent<QuestStep>()).ToArray();
+        if (quest != null) return; //Чтобы на сервере два раза не вызвать
+        quest = questObject.GetComponent<QuestController>();
+        needSteps = needStepsObjects;
         needChangeCollider = newNeedChangeCollider;
         needCount = newNeedCount;
         currentCount = newCurrentCount;
-        miniGameNamePrefab = newMiniGameNamePrefab;
-        quest = questObject.GetComponent<QuestController>();
+        miniGameNamePrefabName = newMiniGameNamePrefab;
         miniGameNeedEnergy = newMiniGameNeedEnergy;
         stepName = newName;
         needActive = newNeedActive;
         needObjectType = (CampObjectType)newNeedObjectType;//-1 если нам не нужен никакой объект, например сон
-        if (needActive && isServer) SpawnMiniGame();//Пока что такие шаги выполняются на сервере, потому что нет еще ничего, что требовало бы другое
-        QuestStepsController.instance.AddStep(needObjectType, this);
+
+        state = (QuestState)stateNum;
+        quest.AddStep(this);
+        if (state == QuestState.Available)
+            taskManager.OfferStepTarget(this);
+        
+        ChangeState((QuestState)stateNum);
+        QuestStepsController.Instance.AddStep(needObjectType, this);
+        if (needActive) AutoSpawnMiniGame();
+    }
+
+    [Server]
+    private void AutoSpawnMiniGame()
+    {
+        SpawnMiniGame();//Пока что такие шаги выполняются на сервере, потому что нет еще ничего, что требовало бы другое
     }
 
     /** Устанавливаем на объекте */
     public void SetActive()
     {
-        var campObject = CampObject.allCampObjects.Find(obj => obj.objectType == needObjectType);
+        var campObject = CampObject.AllCampObjects.Find(obj => obj.objectType == needObjectType);
         //campObject.SetQuestStep(this, needChangeCollider, stepName);
         //Делаем кнопки там всякие в меню активными
     }
@@ -86,16 +133,17 @@ public class QuestStep : NetworkBehaviourExtension
         CheckEnd();
     }
     
-    void CheckEnd()//todo
+    [Server]
+    void CheckEnd()
     {
-        if (currentCount == needCount && isServer)
+        if (currentCount >= needCount)
         {
-            EndGame();
-            // _taskController.MinigameEnded(number, taskPoint);
+            EndMiniGame();
+            localCommands.RpcQuestStepEnded(gameObject);
         }
     }
     
-    public void EndGame()
+    public void EndMiniGame()
     {
         if (currentMiniGameObject != null)
         {
@@ -110,9 +158,9 @@ public class QuestStep : NetworkBehaviourExtension
     @param spawnObject объект, с которого вызван этот метод (например, костер)
     Это необходимо для некоторых миниигр, которые берут размер (например миниигра построения должна брать размер с плаца) 
     */
-    public void SpawnMiniGame(GameObject spawnObject = null)
+    public void SpawnMiniGame()
     {
-        if (miniGameNamePrefab == null) {
+        if (miniGameNamePrefabName == null) {
             Debug.Log("У шага квеста: " + stepName + " не указано miniGameNamePrefab");
             return;
         }
@@ -120,14 +168,14 @@ public class QuestStep : NetworkBehaviourExtension
             Debug.Log("У шага квеста: " + stepName + " отменен повторно вызванный спавн миниигры");
             return;
         }
-        if (state == QuestState.Unavailable || state == QuestState.Done) {
+        if (state is QuestState.Unavailable or QuestState.Done) {
             Debug.Log("У шага квеста: " + stepName + " в состоянии: " + (int)state +  " отменен вызванный спавн миниигры");
             return;
         }
         if (miniGameNeedEnergy && localHealthBar.Energy < 1) return;
-        currentMiniGameObject = Instantiate(Resources.Load("Minigames/" + miniGameNamePrefab), transform.position + miniGameOffset, Quaternion.identity, transform) as GameObject;
+        currentMiniGameObject = Instantiate(Resources.Load("Minigames/" + miniGameNamePrefabName), localPlayer.transform.position + Vector3.up, Quaternion.identity, transform) as GameObject;
 
-        StandartMinigame minigameComponent = currentMiniGameObject.GetComponent<StandartMinigame>();
+        var minigameComponent = currentMiniGameObject.GetComponent<StandartMinigame>();
         if (minigameComponent != null)
             minigameComponent.Init();
         if (!needActive)//Если это полноценная миниигра, а не самоактивирующаяся
@@ -163,7 +211,6 @@ public class QuestStep : NetworkBehaviourExtension
     /** Досрочное завершение миниигры, например, из-за движения */
     public void PreEndGame()
     {
-        //reinit было
-        EndGame();
+        EndMiniGame();
     }
 }

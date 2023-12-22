@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -7,7 +9,11 @@ using UnityEngine.Networking;
 /** Временное хранилище для рецептов и других заданий */
 public static class QuestsDataStore
 {
-    #region tushnyak
+    public static QuestInfo GetByName(string questName)
+    {
+        return new[] { Tushnyak, Rascop, Postr, Sleep }.Single(quest => quest.fileName == questName);
+    }
+    
     public static QuestInfo Tushnyak => new QuestInfo(new[] {
             new QuestStepInfo(
                 false,
@@ -47,7 +53,7 @@ public static class QuestsDataStore
                 false, 
                 "qe_game",
                 (int)CampObjectType.Kitchen,
-                new List<int>(0)
+                new List<int>{0}
             ),
             new QuestStepInfo(
                 false,
@@ -89,9 +95,8 @@ public static class QuestsDataStore
                 (int)CampObjectType.Campfire,
                 new List<int>{4, 5, 6}
             )
-        }, "Греча с тушонкой"
+        }, "Греча с тушонкой", "Tushnyak"
     );
-    #endregion
 
     public static QuestInfo Rascop => new QuestInfo(new[] {
             new QuestStepInfo(
@@ -104,7 +109,7 @@ public static class QuestsDataStore
                 (int)CampObjectType.MainPoint,
                 new List<int>()
             )
-        }, "Раскоп"
+        }, "Раскоп", "Rascop", true
     );
 
     public static QuestInfo Postr => new QuestInfo(new[] {
@@ -114,10 +119,24 @@ public static class QuestsDataStore
                 false,
                 "", 
                 true, 
-                "todo",
+                "AllInMiniGame",
                 (int)CampObjectType.MainPoint,
                 new List<int>()
             )
-        }, "Построение"
+        }, "Построение", "Postr", true
+    );
+    
+    public static QuestInfo Sleep => new QuestInfo(new[] {
+            new QuestStepInfo(
+                true,
+                1,
+                false,
+                "", 
+                true, 
+                "SleepMiniGame",
+                (int)CampObjectType.Nothing,
+                new List<int>()
+            )
+        }, "Сон", "Sleep", true
     );
 }

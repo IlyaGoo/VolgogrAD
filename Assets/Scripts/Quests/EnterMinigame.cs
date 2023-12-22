@@ -9,7 +9,7 @@ public class EnterMinigame : Minigame
 
     void Start()
     {
-        isServer = GameObject.Find("LocalPlayer").GetComponent<PlayerNet>().isServer;
+        isServer = localCommands.isServer;
     }
 
     void OnTriggerEnter2D(Collider2D col)

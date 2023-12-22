@@ -58,7 +58,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 6429144122574213651}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 97da27126655d1e45bc49e72b016db1b, type: 3}
+  m_Script: {fileID: 11500000, guid: b036e6e99e1b3b94fb3d7a504c5299f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   syncMode: 0
@@ -66,9 +66,9 @@ MonoBehaviour:
   started: 0
   starters: []
   _currentPlanNum: -1
-  stepControllerPrefab: {fileID: 8579661793194874878, guid: 6108b902e6074084eb014c0122f6f9a9,
-    type: 3}
+  stepControllerPrefab: {fileID: 0}
   currentQuestName: 
   taskType: 0
-  state: 0
+  state: 2
   isTarget: 0
+  allSteps: []

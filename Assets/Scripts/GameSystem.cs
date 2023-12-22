@@ -55,7 +55,7 @@ public class MonoBehaviourExtension : MonoBehaviour{
     protected static MobsManager mobsManager => MobsManager.instance;
     protected static Algo algo => Algo.instance;
     protected static FListener localFListener => GameSystem.instance.localFListener;
-    protected static TaskMenuScript taskMenu => TaskMenuScript.instance;
+    protected static QuestPanelScript QuestPanel => QuestPanelScript.Instance;
 }
 
 public class NetworkBehaviourExtension : NetworkBehaviour
@@ -82,7 +82,7 @@ public class NetworkBehaviourExtension : NetworkBehaviour
     protected static MobsManager mobsManager => MobsManager.instance;
     protected static Algo algo => Algo.instance;
     protected static FListener localFListener => GameSystem.instance.localFListener;
-    protected static TaskMenuScript taskMenu => TaskMenuScript.instance;
+    protected static QuestPanelScript QuestPanel => QuestPanelScript.Instance;
 }
 
 public class WTFException : Exception

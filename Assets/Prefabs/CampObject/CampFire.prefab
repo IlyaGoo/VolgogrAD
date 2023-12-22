@@ -5089,10 +5089,10 @@ GameObject:
   m_Component:
   - component: {fileID: 6174987955531650907}
   - component: {fileID: 5655442783713068268}
-  - component: {fileID: 5676372725486030482}
+  - component: {fileID: 1405087988423672258}
   m_Layer: 0
   m_Name: CampFire
-  m_TagString: Untagged
+  m_TagString: AreaDoing
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -5123,7 +5123,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6174987955531650909}
-  m_Enabled: 0
+  m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
   m_IsTrigger: 1
@@ -5142,7 +5142,7 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1.5, y: 1.5}
   m_EdgeRadius: 0
---- !u!114 &5676372725486030482
+--- !u!114 &1405087988423672258
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5151,9 +5151,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 6174987955531650909}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: df2545752211b8649973a44cc3dfc199, type: 3}
+  m_Script: {fileID: 11500000, guid: 7c3b84ef895a6f44c8c23a295cec1557, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  labelText: 
+  labelSize: 0
+  PlayerThere: 0
+  HasWASDReqction: 0
+  needPushButton: 1
+  textOffset: {x: -0.6, y: 1, z: 0}
+  owner: {fileID: 0}
   objectType: 0
   ownPoint: {fileID: 0}
 --- !u!1 &6174987956365851501

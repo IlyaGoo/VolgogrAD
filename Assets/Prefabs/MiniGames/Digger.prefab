@@ -10,8 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4371453580795424}
   - component: {fileID: 61027964366683656}
-  - component: {fileID: 2312847251916469673}
-  - component: {fileID: 114068585806966064}
   - component: {fileID: 1356953006473386573}
   m_Layer: 0
   m_Name: Digger
@@ -30,10 +28,11 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -11.59, y: 1.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4515181416524464}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!61 &61027964366683656
 BoxCollider2D:
@@ -61,55 +60,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
---- !u!114 &2312847251916469673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1760117985438100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb009912e7b001d418b897c6bde51e42, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
-  taskType: 1
-  needFreeMobsAfterEnd: 0
-  needBotsCount: 10
-  canReturnMobs: 1
-  currentMenu: {fileID: 0}
-  taskName: 
-  _minigame:
-  - {fileID: 6177401664184192727}
-  currentMinigames: 
-  isOn: 0
-  currentPlanNumber: 0
-  needMap: 0
-  needShowButtons: 0
-  miniGameControllerPrefab: {fileID: 1972992640237982, guid: 2e0977385bc62d24fb826df4cf6e45d7,
-    type: 3}
---- !u!114 &114068585806966064
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1760117985438100}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee8fa7a36cbe3e0498c9db8a4f8eda0c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  panel: {fileID: 0}
-  circlePrefab: {fileID: 1906676118975008, guid: 1f9719dfc42a10c4389ca1b31dbcaaa8,
-    type: 3}
-  circle2Prefab: {fileID: 1661155840947078, guid: 82b9c7e04f7dc3649b7bacddb88566f5,
-    type: 3}
-  linePrefab: {fileID: 1567131510034772, guid: 2a65a31298c484b4884790b00ecbf397, type: 3}
-  textPrefab: {fileID: 1797494098715170, guid: 5f95e6aa7f41dbd41801e88aed0a712f, type: 3}
-  mapGameObject: {fileID: 0}
 --- !u!114 &1356953006473386573
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136,7 +86,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4515181416524464}
   - component: {fileID: 61645075659410576}
-  - component: {fileID: 6177401664184192727}
   m_Layer: 0
   m_Name: MiniGameController
   m_TagString: Untagged
@@ -154,6 +103,7 @@ Transform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4371453580795424}
   m_RootOrder: 0
@@ -184,31 +134,3 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
---- !u!114 &6177401664184192727
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1821922508286696}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d804bb666d9ef8e418f5888222399816, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  needChangeCollider: 1
-  ownButton: {fileID: 0}
-  currentCampObject: {fileID: 0}
-  needCount: 3
-  currentCount: 0
-  ready: 0
-  _taskController: {fileID: 0}
-  number: 0
-  miniGameNeedEnergy: 0
-  needActive: 1
-  minigamePrafab: {fileID: 1420737204559964, guid: 904ef6c3f33888048a51cc95f8d5e22e,
-    type: 3}
-  currentMiniGameObject: {fileID: 0}
-  miniGameOffset: {x: 0, y: 0, z: 0}
-  size: {x: 3, y: 4}
-  offset: {x: 0.67, y: -0.52}

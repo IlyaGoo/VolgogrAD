@@ -58,19 +58,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 8579661793194874878}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c55d967f56c91843b488ce0ce63177b, type: 3}
+  m_Script: {fileID: 11500000, guid: bac95d4fad1770e438fe636dc6410f67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
+  state: 1
+  needChangeCollider: 1
   currentCampObject: {fileID: 0}
   needCount: 3
   currentCount: 0
+  quest: {fileID: 0}
   miniGameNeedEnergy: 1
+  stepName: 
   needActive: 0
-  minigamePrafab: {fileID: 0}
   currentMiniGameObject: {fileID: 0}
   miniGameOffset: {x: 0, y: 0, z: 0}
   size: {x: 0, y: 0}
   offset: {x: 0, y: 0}
+  miniGameNamePrefab: 
+  needObjectType: 0
   needSteps: []

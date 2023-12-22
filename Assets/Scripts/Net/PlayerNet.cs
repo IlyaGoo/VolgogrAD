@@ -5,6 +5,8 @@ using UnityEngine;
 using Mirror;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
+using Telepathy;
 
 public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
 {
@@ -96,13 +98,13 @@ public class PlayerNet : NetworkBehaviourExtension, IAltLabelShower
 
             inventoryController.inventories[0].data = inventoryData.transform.GetChild(1).GetComponent<InventoryData>();
             inventoryController.inventories[0].data.Init();
-            cmd.TargetForceRequestInventory(connectionToClient, gameObject, 0);
+            cmd.ForceRequestInventory(connectionToClient, gameObject, 0);
             inventoryController.inventories[1].data = inventoryData.GetComponent<InventoryData>();
             inventoryController.inventories[1].data.Init();
-            cmd.TargetForceRequestInventory(connectionToClient, gameObject, 1);
+            cmd.ForceRequestInventory(connectionToClient, gameObject, 1);
             inventoryController.inventories[2].data = inventoryData.transform.GetChild(0).GetComponent<InventoryData>();
             inventoryController.inventories[2].data.Init();
-            cmd.TargetForceRequestInventory(connectionToClient, gameObject, 2);
+            cmd.ForceRequestInventory(connectionToClient, gameObject, 2);
             //GameObject.FindGameObjectWithTag("ToolsPanel").GetComponent<Inventory>().data = inventoryData.GetComponent<InventoryData>();
 
         }

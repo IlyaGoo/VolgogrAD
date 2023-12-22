@@ -83,7 +83,7 @@ public class MobPositionSinc : Synchronization
 
     public int GetNetworkChannel()
     {
-        return Channels.DefaultUnreliable;
+        return Channels.Unreliable;
     }
 
     public float GetNetworkSendInterval()

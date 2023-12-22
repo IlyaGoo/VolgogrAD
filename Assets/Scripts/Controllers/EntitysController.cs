@@ -46,7 +46,11 @@ public class EntitysController : MonoBehaviourExtension
     
     public void CreatePlayerData(string identity, string nickname, GameObject playerObject)
     {
-        if (playersData.ContainsKey(identity)) return;
+        if (playersData.ContainsKey(identity))
+        {
+            Debug.LogWarning("Попытка положить PlayerData на игрока, для которого она уже есть");
+            return;
+        }
         playersData.Add(identity, new PlayerInfo(nickname, playerObject, identity));
         if (IsServer) GameSystem.instance.localChatPlayerHelper.RpcSendLine(nickname + " присоединился к игре");
     }

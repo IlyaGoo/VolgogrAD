@@ -16,13 +16,14 @@ public class Arrow : NetworkBehaviourExtension {
 	
 	// Update is called once per frame
 	void Update () {
-        if (taskMenu.targetMenu == null || taskMenu.targetMenu.targetButton == null || taskMenu.targetMenu.targetButton.targetTransform == null)
+        var targetTransform = taskManager.GetTargetTransform();
+        if (targetTransform == null)
         {
             arrow.SetActive(false);
         }
         else
         {
-            var pos2 = taskMenu.targetMenu.targetButton.targetTransform.position;
+            var pos2 = targetTransform.position;
             arrow.SetActive(true);
             float a = Mathf.Abs(transform.position.y - pos2.y);
             float b = Mathf.Abs(transform.position.x - pos2.x);

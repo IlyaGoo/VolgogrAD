@@ -5,128 +5,166 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class MapScript : MonoBehaviour {
+public class MapScript : MonoBehaviourExtension, IListener
+{
+    public static MapScript Instance;
     [SerializeField] GameObject panel;
-    GameObject text;
+    [SerializeField] TextMeshProUGUI text;
     [SerializeField] GameObject circlePrefab;
     [SerializeField] GameObject circle2Prefab = null;
     [SerializeField] GameObject linePrefab;
-    [SerializeField] GameObject textPrefab;
     public GameObject mapGameObject;
-    List<List<GameObject>> points = new List<List<GameObject>>();
-    List<GameObject> allPoints = new List<GameObject>();
+    List<List<Circle>> points = new();
+    private List<Circle> allPoints => points.SelectMany(point => point).ToList();
     float y = 15;
     float x = 75;
 
-    QuestController controllerScript;
-    public QuestController ControllerScript {
-        get
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    private void ChangeState(bool state)
+    {
+        panel.SetActive(state);
+        if (state)
         {
-            if (controllerScript == null)
-                controllerScript = GetComponent<QuestController>();
-            return controllerScript;
+            localListenersManager.TabListeners.Add(this);
+            localListenersManager.EscListeners.Add(this);
+        }
+        else
+        {
+            points.Clear();
+            Destroy(mapGameObject);
+            localListenersManager.TabListeners.Remove(this);
+            localListenersManager.EscListeners.Remove(this);
         }
     }
 
-    Color enableColor = new Vector4(210/255f, 214 / 255f, 76 / 255f, 1);
-    Color choosenColor = new Vector4(214 / 255f, 167 / 255f, 76 / 255f,1);
-    Color disableColor = new Vector4(214 / 255f, 83 / 255f, 76 / 255f,1);
-    Color endedColor = new Vector4(76 / 255f, 214 / 255f, 86 / 255f,1);
-
-    // Use this for initialization
-/*    void Start () {
-        mapGameObject = Instantiate(new GameObject(), new Vector3(panel.transform.position.x, panel.transform.position.y, panel.transform.position.z), Quaternion.identity, panel.transform);
-        text = Instantiate(textPrefab, new Vector3(mapGameObject.transform .position.x- 15.2f, mapGameObject.transform.position.y+186.6f, mapGameObject.transform.position.z+10), Quaternion.identity, mapGameObject.transform);
-        //text.transform.position = new Vector3(-15.2f, 186.6f, 10);
-    }
-*/
-    public void SpawnStartObjects()
+    public void EventDid()
     {
-        mapGameObject = Instantiate(new GameObject(), new Vector3(panel.transform.position.x, panel.transform.position.y, panel.transform.position.z), Quaternion.identity, panel.transform);
-        text = Instantiate(textPrefab, new Vector3(mapGameObject.transform.position.x - 15.2f, mapGameObject.transform.position.y + 186.6f, mapGameObject.transform.position.z + 10), Quaternion.identity, mapGameObject.transform);
+        ChangeState(false);
     }
 
-    public void CloseMap()
-    {
-        panel.SetActive(false);
-        points.Clear();
-        allPoints.Clear();
-        Destroy(mapGameObject);
-    }
+    QuestController currentControllerScript;
 
-    public void ChangeMainText(string str)
+    public void OpenWithQuest(QuestController quest)
     {
-        text.GetComponent<TextMeshProUGUI>().SetText(str);
-    }
-
-    public void SetState(GameObject mapCircleObject, StepState state)
-    {
-        //if (taskPoint.number > allPoints.Count - 1) return;
-
-        Color newColor;
-        switch (state)
+        if (currentControllerScript == quest)
         {
-            case StepState.Enable:
-                newColor = enableColor;
-                break;
-            case StepState.Chosen:
-                newColor = choosenColor;
-                break;
-            case StepState.Disable:
-                newColor = disableColor;
-                break;
-            case StepState.Ended:
-                newColor = endedColor;
-                break;
-            default:
-                newColor = new Color();
-                break;
+            currentControllerScript = null;
+            ChangeState(false);
+        }
+        else
+        {
+            if (currentControllerScript != null)
+                ChangeState(false);
+            currentControllerScript = quest;
+            text.SetText(quest.currentQuestName);
+            ChangeState(true);
+            BuildMap(quest);
+        }
+    }
+
+    public void UpdateAllSteps(QuestController quest)
+    {
+        if (quest == currentControllerScript)
+        {
+            allPoints.ForEach(point =>
+                point.updateState()
+            );
+        }
+    }
+
+    private void BuildMap(QuestController quest)
+    {
+        mapGameObject = Instantiate(new GameObject(),
+            new Vector3(panel.transform.position.x, panel.transform.position.y, panel.transform.position.z),
+            Quaternion.identity, panel.transform);
+
+        foreach (var step in quest.allSteps)
+        {
+            AddCircle(step);
         }
 
-        
-        mapCircleObject.GetComponent<Image>().color = newColor;
+        BuildLines();
     }
-    
-    // public void AddCircle(TaskPoint point, StepState state = StepState.Disable)
-    // {
-    //     /*if (allPoints.Count == 0) SpawnStartObjects();*/
-    //     if (point.level + 1 > points.Count) points.Add(new List<GameObject>());
-    //     var newCircle = Instantiate(circlePrefab, new Vector3(panel.transform.position.x, panel.transform.position.y + 120 - 5 *y * point.level, panel.transform.position.z), Quaternion.identity, mapGameObject.transform);
-    //     points[point.level].Add(newCircle);
-    //     point.mapCircleObject = newCircle;
 
-    //     var CircleComponent = newCircle.GetComponent<Circle>();
-    //     CircleComponent.taskPoint = point;
+    public void CloseMap(QuestController closeQuest = null)
+    {
+        if (closeQuest == null || closeQuest == currentControllerScript)
+        {
+            ChangeState(false);
+            currentControllerScript = null;
+        }
+    }
 
-    //     newCircle.GetComponent<Button>().onClick.AddListener(delegate { ControllerScript.ChangeTarget(CircleComponent.taskPoint); });
+    private void BuildLines()
+    {
+        foreach (var point in allPoints)
+        {
+            if (point.level == 0) continue;
+            var needPoints = allPoints.FindAll(parentPoint => point.step.needSteps.Contains(parentPoint.step));
 
-    //     for (int i = 0; i < points[point.level].Count; i++)
-    //     {
-    //         points[point.level][i].transform.position = new Vector3(panel.transform.position.x - (points[point.level].Count-1) * x / 2 + i * x, points[point.level][i].transform.position.y, points[point.level][i].transform.position.z);
-    //     }
-    //     allPoints.Add(newCircle);
-    //     SetState(point.mapCircleObject, state);
+            if (needPoints.Count > 0)
+                foreach (var parent in needPoints)
+                {
+                    var parentTransform = parent.transform;
 
+                    var a = Mathf.Abs(parentTransform.position.y - point.transform.position.y);
+                    var b = Mathf.Abs(parentTransform.position.x - point.transform.position.x);
+                    var c = Mathf.Sqrt(a * a + b * b);
 
-    //     if (point.needPointsNums != null)
-    //         foreach (var parent in point.needPointsNums)
-    //         {
-    //             var parentTransform = allPoints[parent].transform;
+                    var alpha = Mathf.Asin(a / c) / Mathf.PI * 180;
 
-    //             float a = Mathf.Abs(parentTransform.position.y - newCircle.transform.position.y);
-    //             float b = Mathf.Abs(parentTransform.position.x - newCircle.transform.position.x);
-    //             float c = Mathf.Sqrt(a * a + b * b);
+                    var angle = point.transform.position.x > parentTransform.position.x
+                        ? point.transform.position.y > parentTransform.position.y ? alpha : 360 - alpha
+                        : point.transform.position.y > parentTransform.position.y
+                            ? 180 - alpha
+                            : 180 + alpha;
 
-    //             float alpha = Mathf.Asin(a/c)/Mathf.PI*180;
+                    var newLine = Instantiate(linePrefab,
+                        new Vector3(parentTransform.position.x, parentTransform.position.y, -1), Quaternion.identity,
+                        parentTransform);
+                    var circle2 = Instantiate(circle2Prefab,
+                        new Vector3(parentTransform.position.x, parentTransform.position.y, -1), Quaternion.identity,
+                        parentTransform);
+                    newLine.transform.rotation = Quaternion.Euler(0, 0, angle);
 
-    //             float dopangle = newCircle.transform.position.x > parentTransform.position.x ? newCircle.transform.position.y > parentTransform.position.y ? alpha : 360 - alpha : newCircle.transform.position.y > parentTransform.position.y ? 180 - alpha : 180 + alpha;
+                    var tr = newLine.GetComponent<RectTransform>();
+                    tr.sizeDelta = new Vector2(c, 5);
+                }
+        }
+    }
 
-    //             var newLine = Instantiate(linePrefab, new Vector3(parentTransform.position.x, parentTransform.position.y, -1), Quaternion.identity, parentTransform);
-    //             var circle2 = Instantiate(circle2Prefab, new Vector3(parentTransform.position.x, parentTransform.position.y, -1), Quaternion.identity, parentTransform);
-    //             newLine.transform.rotation = Quaternion.Euler(0, 0, dopangle);
+    private void AddCircle(QuestStep step)
+    {
+        var needPoints = allPoints.FindAll(point => step.needSteps.Contains(point.step));
+        var level = needPoints.Count == 0 ? 0 : needPoints.Select(point => point.level).Max() + 1;
 
-    //             var tr = newLine.GetComponent<RectTransform>();
-    //             tr.sizeDelta = new Vector2(c, 5);
-    //         }
-    // }
+        if (level + 1 > points.Count) points.Add(new List<Circle>());
+        var newCircle = Instantiate(circlePrefab,
+            new Vector3(panel.transform.position.x, panel.transform.position.y + 120 - 5 * y * level,
+                panel.transform.position.z), Quaternion.identity, mapGameObject.transform);
+        var point = newCircle.GetComponent<Circle>();
+        point.step = step;
+        point.level = level;
+        points[point.level].Add(point);
+        //point.mapCircleObject = newCircle;
+        //point.taskPoint = point;
+
+        newCircle.GetComponent<Button>().onClick.AddListener(delegate { taskManager.UpdateTargetStep(step); });
+
+        for (int i = 0; i < points[point.level].Count; i++)
+        {
+            points[point.level][i].transform.position = new Vector3(
+                panel.transform.position.x - (points[point.level].Count - 1) * x / 2 + i * x,
+                points[point.level][i].transform.position.y, points[point.level][i].transform.position.z);
+        }
+
+        //allPoints.Add(newCircle);
+        //SetState(point.mapCircleObject, state);
+
+        point.updateState();
+    }
 }

@@ -5,10 +5,9 @@ using UnityEngine;
 /** Состояние квеста */
 public enum QuestState//Пронумерованый в порядке приоритетности
 {
-    Active = 0,
-    Available = 1,
-    Unavailable = 2, 
-    Done = 3
+    Available = 0,
+    Unavailable = 1, 
+    Done = 2
 }
 
 /** Варианты таска */

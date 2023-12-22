@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4831722776443336}
   - component: {fileID: 61338802642397328}
-  - component: {fileID: 114302671397884108}
   m_Layer: 0
   m_Name: MiniGameController
   m_TagString: Untagged
@@ -28,6 +27,7 @@ Transform:
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4047957737150114}
   m_RootOrder: 0
@@ -58,34 +58,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
---- !u!114 &114302671397884108
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1627427975586960}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ac72e6ed91a2bc4e8ec49141eabf42a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  needChangeCollider: 1
-  ownButton: {fileID: 0}
-  currentCampObject: {fileID: 0}
-  needCount: 3
-  currentCount: 0
-  ready: 0
-  _taskController: {fileID: 0}
-  number: 0
-  miniGameNeedEnergy: 0
-  needActive: 1
-  minigamePrafab: {fileID: 1420737204559964, guid: 904ef6c3f33888048a51cc95f8d5e22e,
-    type: 3}
-  currentMiniGameObject: {fileID: 0}
-  miniGameOffset: {x: 0, y: 0, z: 0}
-  size: {x: 3, y: 4}
-  offset: {x: 0.67, y: -0.52}
 --- !u!1 &1952709105592204
 GameObject:
   m_ObjectHideFlags: 0
@@ -96,10 +68,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4047957737150114}
   - component: {fileID: 61167671863022672}
-  - component: {fileID: 114258194066271400}
-  - component: {fileID: 114675165888266466}
   - component: {fileID: 4511810237032064454}
   - component: {fileID: 502673082}
+  - component: {fileID: 7894417804177908182}
   m_Layer: 0
   m_Name: Postr
   m_TagString: TriggerArea
@@ -117,10 +88,11 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -6.58, y: -0.92, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4831722776443336}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!61 &61167671863022672
 BoxCollider2D:
@@ -148,55 +120,6 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
---- !u!114 &114258194066271400
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1952709105592204}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 06685e4fd8019dc46b37e6f421c2c00a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncMode: 0
-  syncInterval: 0.1
-  taskType: 2
-  needFreeMobsAfterEnd: 1
-  needBotsCount: 10
-  canReturnMobs: 1
-  currentMenu: {fileID: 0}
-  taskName: 
-  _minigame:
-  - {fileID: 114302671397884108}
-  currentMinigames: 
-  isOn: 0
-  currentPlanNumber: 0
-  needMap: 0
-  needShowButtons: 0
-  miniGameControllerPrefab: {fileID: 1972992640237982, guid: 2e0977385bc62d24fb826df4cf6e45d7,
-    type: 3}
---- !u!114 &114675165888266466
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1952709105592204}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee8fa7a36cbe3e0498c9db8a4f8eda0c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  panel: {fileID: 0}
-  circlePrefab: {fileID: 1906676118975008, guid: 1f9719dfc42a10c4389ca1b31dbcaaa8,
-    type: 3}
-  circle2Prefab: {fileID: 1661155840947078, guid: 82b9c7e04f7dc3649b7bacddb88566f5,
-    type: 3}
-  linePrefab: {fileID: 1567131510034772, guid: 2a65a31298c484b4884790b00ecbf397, type: 3}
-  textPrefab: {fileID: 1797494098715170, guid: 5f95e6aa7f41dbd41801e88aed0a712f, type: 3}
-  mapGameObject: {fileID: 0}
 --- !u!114 &4511810237032064454
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -226,3 +149,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   changing: {x: 0, y: -1, z: -0.01}
+--- !u!114 &7894417804177908182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1952709105592204}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c3b84ef895a6f44c8c23a295cec1557, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  labelText: 
+  labelSize: 0
+  PlayerThere: 0
+  HasWASDReqction: 0
+  needPushButton: 1
+  textOffset: {x: -0.6, y: 1, z: 0}
+  owner: {fileID: 0}
+  objectType: 2
+  ownPoint: {fileID: 0}

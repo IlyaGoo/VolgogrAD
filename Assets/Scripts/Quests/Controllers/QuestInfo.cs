@@ -6,15 +6,19 @@ public class QuestInfo
     {
         public string name;
         public List<QuestStepInfo> allSteps = new List<QuestStepInfo>();
+        public bool simple;//является ли квест простым (например спать, в этих случаях не спавним кнопки шагов квеста)
+        public string fileName;//Потенциально так будет называться XML с этим рецептом
 
-        public QuestInfo(QuestStepInfo[] steps, string newName)
+        public QuestInfo(QuestStepInfo[] steps, string newName, string newFileName, bool newSimple = false)
         {
             name = newName;
+            simple = newSimple;
             foreach (var step in steps)
             {
             //     AddPoint(step.neeedPointsNums, step);
                 allSteps.Add(step);
             }
+            fileName = newFileName;
         }
         
 
@@ -83,11 +87,10 @@ public class QuestStepInfo //по сути единица готовки (обж
 {
     public bool needChangeCollider;
     public int needCount;
-    public GameObject questObject;
     public bool miniGameNeedEnergy;
     public string stepName;
     public bool needActive;
-    public string miniGameNamePrefab; //todo
+    public string miniGameNamePrefab;
     public Vector2 size;
     public Vector2 offset;
     public int needObjectType;
@@ -99,7 +102,7 @@ public class QuestStepInfo //по сути единица готовки (обж
         bool newMiniGameNeedEnergy,
         string newName,
         bool newNeedActive,
-        string newMiniGameNamePrefab, //todo
+        string newMiniGameNamePrefab,
         int newNeedObjectType,
         List<int> newPreviousStepsNumbersNumbers
     )

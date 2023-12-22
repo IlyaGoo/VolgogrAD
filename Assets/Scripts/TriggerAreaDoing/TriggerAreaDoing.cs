@@ -7,7 +7,7 @@ public abstract class TriggerAreaDoing : MonoBehaviourExtension, ICanBeOwn
 {
     static readonly string triggerTextPrefix = "Texts/TriggerText";
     public string labelText = null;
-    protected GameObject LabelObject;
+    public GameObject LabelObject;
     public int labelSize = 0;
     public bool PlayerThere;
     /** Существует ли реакция области на движение WASD игрока */
@@ -63,6 +63,12 @@ public abstract class TriggerAreaDoing : MonoBehaviourExtension, ICanBeOwn
         }
         else
             Destroy(LabelObject);
+    }
+    
+    
+    //Просто пересчитать текст, который мы потенциально будет отображать, а не обновить лэйбл с текстом
+    public virtual void UpdateText()
+    {
     }
 
     public void UpdateTextLabel()

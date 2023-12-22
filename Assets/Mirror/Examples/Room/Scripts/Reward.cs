@@ -6,9 +6,6 @@ namespace Mirror.Examples.NetworkRoom
     public class Reward : NetworkBehaviour
     {
         public bool available = true;
-        public Spawner spawner;
-        uint points;
-
         public RandomColor randomColor;
 
         void OnValidate()
@@ -21,13 +18,12 @@ namespace Mirror.Examples.NetworkRoom
         void OnTriggerEnter(Collider other)
         {
             if (other.gameObject.CompareTag("Player"))
-            {
                 ClaimPrize(other.gameObject);
-            }
         }
-        
+
         // This is called from PlayerController.CmdClaimPrize which is invoked by PlayerController.OnControllerColliderHit
         // This only runs on the server
+        [ServerCallback]
         public void ClaimPrize(GameObject player)
         {
             if (available)
@@ -36,18 +32,18 @@ namespace Mirror.Examples.NetworkRoom
                 // First hit turns it off, pending the object being destroyed a few frames later.
                 available = false;
 
-                Color prizeColor = randomColor.color;
+                Color32 color = randomColor.color;
 
                 // calculate the points from the color ... lighter scores higher as the average approaches 255
                 // UnityEngine.Color RGB values are float fractions of 255
-                points = (uint)(((prizeColor.r * 255) + (prizeColor.g * 255) + (prizeColor.b * 255)) / 3);
-                if (LogFilter.Debug) Debug.LogFormat("Scored {0} points R:{1} G:{2} B:{3}", points, prizeColor.r, prizeColor.g, prizeColor.b);
+                uint points = (uint)(((color.r) + (color.g) + (color.b)) / 3);
+                //Debug.Log($"Scored {points} points R:{color.r} G:{color.g} B:{color.b}");
 
                 // award the points via SyncVar on the PlayerController
                 player.GetComponent<PlayerScore>().score += points;
 
                 // spawn a replacement
-                spawner.SpawnPrize();
+                Spawner.SpawnReward();
 
                 // destroy this one
                 NetworkServer.Destroy(gameObject);

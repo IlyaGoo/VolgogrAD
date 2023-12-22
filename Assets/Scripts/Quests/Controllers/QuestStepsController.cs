@@ -5,47 +5,46 @@ using System;
 using System.Linq;
 
 /** Скрипт, осуществляющий допонительную координацию шагов квеста */
-public class QuestStepsController : MonoBehaviour
+public class QuestStepsController : MonoBehaviourExtension
 {
-    public static QuestStepsController instance;
+    public static QuestStepsController Instance;
 
-    Dictionary<CampObjectType, List<QuestStep>> campObjectToSteps = new Dictionary<CampObjectType, List<QuestStep>>();
+    private readonly Dictionary<CampObjectType, List<QuestStep>> _campObjectToSteps = new();
 
-    // Start is called before the first frame update
-    void Awake()
+    private void Awake()
     {
         var allCampTypes = Enum.GetValues(typeof(CampObjectType));
         foreach (CampObjectType campType in allCampTypes)
         {
-            campObjectToSteps.Add(campType, new List<QuestStep>());
+            _campObjectToSteps.Add(campType, new List<QuestStep>());
         }
-        instance = this;
+        Instance = this;
     }
 
     public QuestStep GetByCampObjectType(CampObjectType campType)
     {
-        var steps = campObjectToSteps[campType];
-        if (steps.Count == 0)
-            return null;
-        else
-            return steps[0];
+        var steps = _campObjectToSteps[campType].FindAll(step => step.state is QuestState.Available);
+        //В первую очередь хотим взять таргетный шаг
+        var targetStep = steps.Find(step => step == taskManager._targetStep);
+        return steps.Count == 0 ? null : targetStep == null ? steps[0] : targetStep;
     }
 
-    public void ResortSteps(CampObjectType sortCampType)
+    private void ResortSteps(CampObjectType sortCampType)
     {
-        var cleanedList = campObjectToSteps[sortCampType].FindAll(e => e != null);
-        campObjectToSteps[sortCampType] = cleanedList.OrderBy(x => x.state).ToList<QuestStep>();
+        var cleanedList = _campObjectToSteps[sortCampType].FindAll(e => e != null);
+        _campObjectToSteps[sortCampType] = cleanedList.OrderBy(x => x.state).ToList();
+        localTaker.UpdateCampTriggerArea(sortCampType);
     }
 
     public void AddStep(CampObjectType needCampType, QuestStep step)
     {
-        campObjectToSteps[needCampType].Add(step);
-        ResortSteps(needCampType);
+        _campObjectToSteps[needCampType].Add(step);
+        ResortSteps(step.needObjectType);
     }
 
-    public void RemoveStep(CampObjectType needCampType, QuestStep step)
+    public void RemoveStep(QuestStep step)
     {
-        campObjectToSteps[needCampType].Remove(step);
-        ResortSteps(needCampType);
+        _campObjectToSteps[step.needObjectType].Remove(step);
+        ResortSteps(step.needObjectType);
     }
 }

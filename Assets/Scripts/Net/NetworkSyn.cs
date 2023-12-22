@@ -66,14 +66,14 @@ public class NetworkSyn : NetworkBehaviour {
         //transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(_lastRotation), Time.deltaTime * _rotLerpRate);
     }
 
-    [Command(channel = Channels.DefaultUnreliable)]
+    [Command(channel = Channels.Unreliable)]
     private void CmdSendPosition(Vector3 pos)
     {
         _lastPosition = pos;
         //_scale = transform.localScale;
     }
 
-    [Command(channel = Channels.DefaultUnreliable)]
+    [Command(channel = Channels.Unreliable)]
     private void CmdSendScale(Vector3 scale)
     {
         _lastScale = scale;
@@ -92,7 +92,7 @@ public class NetworkSyn : NetworkBehaviour {
 
     public int GetNetworkChannel()
     {
-        return Channels.DefaultUnreliable;
+        return Channels.Unreliable;
     }
 
     public float GetNetworkSendInterval()
