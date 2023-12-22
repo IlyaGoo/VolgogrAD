@@ -16,7 +16,7 @@ public class StarQuestObjectGetter : IStarQuestObjectGetter
     }
 
     public GameObject GetObject() {
-        return CampObject.allCampObjects.Find(obj => obj.objectType == objectType).gameObject;
+        return CampObject.AllCampObjects.Find(obj => obj.objectType == objectType).gameObject;
     }
 }
 

@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerInfo: AbstractEntityInfo{
+public class PlayerInfo : AbstractEntityInfo
+{
     public string nickname;
     public List<TriggerAreaDoing> currentDoings = new List<TriggerAreaDoing>();
     public GameObject inventoryData;
@@ -15,12 +16,12 @@ public class PlayerInfo: AbstractEntityInfo{
     public override bool IsDisconnected { get; set; } = false;
 
     public PlayerInfo(string nick, GameObject obj, string id)
-        :base(obj, id)
+        : base(obj, id)
     {
         nickname = nick;
         inventoryData = obj.GetComponent<PlayerNet>().InitInventory();
     }
-    
+
     public void SetBody(int head, int body, int legs)
     {
         headNum = head;

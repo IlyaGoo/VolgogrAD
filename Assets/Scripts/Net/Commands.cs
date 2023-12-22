@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
@@ -45,11 +46,16 @@ public class Commands : NetworkBehaviourExtension
         }
     }
 
-
-    [TargetRpc]
-    public void TargetForceRequestInventory(NetworkConnection target, GameObject invControllerOject, int invNumber)
+    public void ForceRequestInventory(NetworkConnection target, GameObject invControllerObject, int invNumber)
     {
-        invControllerOject.GetComponent<InventoryController>().inventories[invNumber].RequesData();
+        if (!isServer) return;
+        TargetForceRequestInventory(target, invControllerObject, invNumber);
+    }
+    
+    [TargetRpc]
+    public void TargetForceRequestInventory(NetworkConnection target, GameObject invControllerObject, int invNumber)
+    {
+        invControllerObject.GetComponent<InventoryController>().inventories[invNumber].RequesData();
     }
 
     [Command]
@@ -993,7 +999,20 @@ public class Commands : NetworkBehaviourExtension
     public void CmdStartQuest(GameObject questControllerObject)
     {
         var questController = questControllerObject.GetComponent<QuestController>();
+        if (questController.started)//Проверка на всякий случай, вдруг как-то удастся два раза вызвать команду инициализации
+        {
+            Debug.Log("Попытка инициализировать QuestController, который уже инициализирован");
+            return;
+        }
         questController.ChooseAndSpawnSteps();
+        RpcStartQuest(questControllerObject);
+    }
+    
+    [ClientRpc]
+    private void RpcStartQuest(GameObject questControllerObject)
+    {
+        var step = questControllerObject.GetComponent<QuestController>();
+        step.StartQuest();
     }
 
     [Command]
@@ -1009,6 +1028,13 @@ public class Commands : NetworkBehaviourExtension
         var step = controller.GetComponent<QuestStep>();
         step.SetCount(count);
     }
+    
+    [ClientRpc]
+    public void RpcQuestStepEnded(GameObject controller)
+    {
+        var step = controller.GetComponent<QuestStep>();
+        controller.transform.parent.GetComponent<QuestController>().EndStep(step);
+    }
 
     /** Запрос инициализации контроллера квеста со стороны клиена
         Вызывать только с localCommands
@@ -1017,14 +1043,21 @@ public class Commands : NetworkBehaviourExtension
     public void CmdRequestInitQuestController(GameObject questControllerObject)
     {
         var controller = questControllerObject.GetComponent<QuestController>();
-        TargetInitLocalCommands(connectionToClient, questControllerObject, controller.currentQuestName, (int)controller.taskType, controller._currentPlanNum);
+        TargetInitLocalCommands(
+            connectionToClient,
+            questControllerObject, 
+            controller.currentQuestName, 
+            (int)controller.taskType,
+            controller.GetCurrentPlanName(),
+            controller.needMap
+        );
     }
 
     [TargetRpc]
-    public void TargetInitLocalCommands(NetworkConnection target, GameObject questControllerObject, string currentQuestName, int taskType, int planNum)
+    public void TargetInitLocalCommands(NetworkConnection target, GameObject questControllerObject, string currentQuestName, int taskType, string planName, bool needMap)
     {
         var controller = questControllerObject.GetComponent<QuestController>();
-        controller.Init(currentQuestName, (TaskType)taskType, planNum);
+        controller.ClientInit(currentQuestName, (TaskType)taskType, planName, controller.endTime, needMap);
     }
 
     /** Запрос инициализации активатора квеста со стороны клиена
@@ -1034,15 +1067,15 @@ public class Commands : NetworkBehaviourExtension
     public void CmdRequestInitQuestActivator(GameObject questActivatorObject)
     {
         var controller = questActivatorObject.GetComponent<QuestStartAreaDoing>();
-        TargetInitLocalActivator(connectionToClient, questActivatorObject, controller.GetQuest().gameObject);
+        TargetInitLocalActivator(connectionToClient, questActivatorObject, controller.GetQuest().gameObject, controller.gameObject.activeSelf);
     }
 
     [TargetRpc]
-    public void TargetInitLocalActivator(NetworkConnection target, GameObject areaObj, GameObject questObj)
+    public void TargetInitLocalActivator(NetworkConnection target, GameObject areaObj, GameObject questObj, bool active)
     {
         var area = areaObj.GetComponent<QuestStartAreaDoing>();
         var quest = questObj.GetComponent<QuestController>();
-        area.SetQuest(quest);
+        area.SetQuest(quest, active);
         quest.starters.Add(area);//Двойная связь, но ничего страшного, это взаимосвязанные объекты
     }
 
@@ -1052,20 +1085,21 @@ public class Commands : NetworkBehaviourExtension
     [Command]
     public void CmdRequestInitQuestStep(GameObject questStepObject)
     {
-        var controller = questStepObject.GetComponent<QuestStep>();
+        var questStep = questStepObject.GetComponent<QuestStep>();
         TargetInitLocalStep(
             connectionToClient,
             questStepObject,
-            controller.needChangeCollider,
-            controller.needCount,
-            controller.currentCount,
-            controller.quest.gameObject,
-            controller.miniGameNeedEnergy,
-            controller.stepName,
-            controller.needActive,
-            controller.miniGameNamePrefab,
-            (int)controller.needObjectType,
-            controller.needSteps.Select(step => step.gameObject).ToArray()
+            questStep.needChangeCollider,
+            questStep.needCount,
+            questStep.currentCount,
+            questStep.quest.gameObject,
+            questStep.miniGameNeedEnergy,
+            questStep.stepName,
+            questStep.needActive,
+            questStep.miniGameNamePrefabName,
+            (int)questStep.needObjectType,
+            questStep.needSteps.Select(step => step.gameObject).ToArray(),
+            (int)questStep.state
         );
     }
 
@@ -1082,7 +1116,8 @@ public class Commands : NetworkBehaviourExtension
         bool newNeedActive,
         string miniGameNamePrefab,
         int newNeedObjectType,
-        GameObject[] needStepsObjects
+        GameObject[] needStepsObjects,
+        int needState
         )
     {
         stepObject.GetComponent<QuestStep>().SetData(
@@ -1095,7 +1130,8 @@ public class Commands : NetworkBehaviourExtension
             newNeedActive,
             miniGameNamePrefab,
             newNeedObjectType,
-            needStepsObjects
+            needStepsObjects.Select(so => so.GetComponent<QuestStep>()).ToArray(),
+            needState
             );
     }
 
